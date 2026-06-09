@@ -2,12 +2,12 @@
 <html lang="de">
 <head>
     <meta charset="utf-8">
-    <title>Gröben Aussichtsplattform</title>
+    <title>Gröben Aussichtsplattform - Milchglas Edition</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
 
     <script>
-        // Sound-Logik
+        // Sound-Logik: Noch längere Erkennungspause, damit es weniger abgehackt wirkt
         AFRAME.registerComponent('schritt-sound', {
             init: function () {
                 this.playing = false;
@@ -16,22 +16,23 @@
             },
             tick: function () {
                 let pos = this.el.object3D.position;
-                if (pos.distanceTo(this.lastPos) > 0.01) {
+                // Distanzschwelle für den Soundstart
+                if (pos.distanceTo(this.lastPos) > 0.02) {
                     if (!this.playing) { this.el.components.sound.playSound(); this.playing = true; }
                 } else {
+                    // Erst stoppen, wenn Bewegung wirklich gestoppt hat
                     if (this.playing) { this.el.components.sound.stopSound(); this.playing = false; }
                 }
                 this.lastPos.copy(pos);
             }
         });
 
-        // Die "Garantie-Wand" – angepasst auf den neuen, kleineren Radius von 2.8m
+        // Garantierte Kollision
         AFRAME.registerComponent('unfall-schutz', {
             tick: function () {
                 let pos = this.el.object3D.position;
-                let limit = 2.8; 
+                let limit = 2.8;
                 let dist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
-                
                 if (dist > limit) {
                     let angle = Math.atan2(pos.x, pos.z);
                     pos.x = Math.sin(angle) * limit;
@@ -49,12 +50,17 @@
         </a-assets>
 
         <a-sky src="#mein-himmel" rotation="0 -90 0"></a-sky>
-        
+
         <a-text value="Willkommen am Groeben" align="center" color="#ffffff" position="0 2.5 -2.5" width="5"></a-text>
 
-        <a-cylinder position="0 0.4 0" radius="2.9" height="0.8" color="#7a6a53" material="side: double" open-ended="true"></a-cylinder>
+        <a-cylinder position="0 0.4 0" radius="2.9" height="0.8" 
+                    material="color: #ffffff; transparent: true; opacity: 0.6; roughness: 0.2; metalness: 0" 
+                    open-ended="true" side="double"></a-cylinder>
         
-        <a-cylinder position="0 0 0" radius="3.0" height="0.1" color="#2a2a2a" material="roughness: 1.0"></a-cylinder>
+        <a-cylinder position="0 0 0" radius="3.0" height="0.1" 
+                    color="#333333" 
+                    material="roughness: 0.9; metalness: 0.1"></a-cylinder>
+        <a-ring position="0 0.06 0" radius-inner="1.5" radius-outer="2.9" rotation="-90 0 0" color="#444444" opacity="0.3"></a-ring>
 
         <a-entity id="rig" 
                   movement-controls="controls: gamepad, keyboard; speed: 0.15"
