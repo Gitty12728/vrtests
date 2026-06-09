@@ -2,19 +2,21 @@
 <html lang="de">
 <head>
     <meta charset="utf-8">
-    <title>Gröben Plattform - Endgültig</title>
+    <title>Gröben Aussichtsplattform - Final</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
 
     <script>
-        // Brüstungs-Segmente
+        // Brüstung erzeugen
         AFRAME.registerComponent('segment-erzeuger', {
             init: function () {
-                for (let i = 0; i < 16; i++) {
-                    const angle = (i / 16) * Math.PI * 2;
+                const count = 16;
+                const radius = 2.9;
+                for (let i = 0; i < count; i++) {
+                    const angle = (i / count) * Math.PI * 2;
                     const segment = document.createElement('a-box');
-                    segment.setAttribute('position', `${Math.sin(angle) * 2.9} 0.4 ${Math.cos(angle) * 2.9}`);
-                    segment.setAttribute('rotation', `0 ${i * (360 / 16)} 0`);
+                    segment.setAttribute('position', `${Math.sin(angle) * radius} 0.4 ${Math.cos(angle) * radius}`);
+                    segment.setAttribute('rotation', `0 ${i * (360 / count)} 0`);
                     segment.setAttribute('width', '1.1');
                     segment.setAttribute('height', '0.8');
                     segment.setAttribute('depth', '0.1');
@@ -36,34 +38,38 @@
 
         <a-sky src="#himmel"></a-sky>
 
-        <a-entity segment-erzeuger></a-entity>
         <a-cylinder position="0 0 0" radius="3.0" height="0.1" color="#333333"></a-cylinder>
+        <a-entity segment-erzeuger></a-entity>
         
-        <a-image src="#logo" position="0 3.5 -2.5" width="1.5" height="1.5"></a-image>
+        <a-image src="#logo" position="0 3.5 -2.5" width="2.4" height="0.8"></a-image>
+        
         <a-video id="screen" src="#vid" position="0 1.8 -1.5" width="2.4" height="1.35"></a-video>
 
         <a-entity position="0 0.8 -1.5">
-            <a-box class="clickable" id="play-btn" position="-0.4 0 0" width="0.5" height="0.3" depth="0.1" color="#444">
-                <a-text value="▶" align="center" position="0 0 0.06"></a-text>
-            </a-box>
-            <a-box class="clickable" id="stop-btn" position="0.4 0 0" width="0.5" height="0.3" depth="0.1" color="#444">
-                <a-text value="⏹" align="center" position="0 0 0.06"></a-text>
-            </a-box>
+            <a-box class="clickable" id="play-btn" position="-0.4 0 0" width="0.5" height="0.3" depth="0.1" color="#555"></a-box>
+            <a-text value="PLAY" position="-0.4 0 0.06" align="center" scale="0.4 0.4 0.4" pickable="false"></a-text>
+            
+            <a-box class="clickable" id="stop-btn" position="0.4 0 0" width="0.5" height="0.3" depth="0.1" color="#555"></a-box>
+            <a-text value="STOP" position="0.4 0 0.06" align="center" scale="0.4 0.4 0.4" pickable="false"></a-text>
         </a-entity>
 
-        <a-entity id="rig" movement-controls="speed: 0.15">
-            <a-entity camera look-controls position="0 1.6 0">
-                <a-cursor fuse="false"></a-cursor>
-            </a-entity>
-            <a-entity laser-controls="hand: right"></a-entity>
-            <a-entity laser-controls="hand: left"></a-entity>
+        <a-entity id="rig" movement-controls="controls: keyboard, gamepad; speed: 0.15">
+            <a-entity camera look-controls position="0 1.6 0"></a-entity>
+            
+            <a-entity laser-controls="hand: right" raycaster="objects: .clickable; showLine: true"></a-entity>
+            <a-entity laser-controls="hand: left" raycaster="objects: .clickable; showLine: true"></a-entity>
         </a-entity>
     </a-scene>
 
     <script>
         const video = document.querySelector('#vid');
-        document.querySelector('#play-btn').addEventListener('click', () => video.play());
-        document.querySelector('#stop-btn').addEventListener('click', () => { video.pause(); video.currentTime = 0; });
+        document.querySelector('#play-btn').addEventListener('click', () => {
+            video.play();
+        });
+        document.querySelector('#stop-btn').addEventListener('click', () => { 
+            video.pause(); 
+            video.currentTime = 0; 
+        });
     </script>
 </body>
 </html>
