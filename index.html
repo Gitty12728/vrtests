@@ -7,7 +7,6 @@
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
 
     <script>
-        // 1. Sound-Logik
         AFRAME.registerComponent('schritt-sound', {
             init: function () {
                 this.playing = false;
@@ -25,7 +24,6 @@
             }
         });
 
-        // 2. Unfall-Schutz (Garantierte Begrenzung)
         AFRAME.registerComponent('unfall-schutz', {
             tick: function () {
                 let pos = this.el.object3D.position;
@@ -39,7 +37,6 @@
             }
         });
 
-        // 3. Brüstungs-Segmente erzeugen
         AFRAME.registerComponent('segment-erzeuger', {
             init: function () {
                 const count = 16;
@@ -48,7 +45,6 @@
                     const angle = (i / count) * Math.PI * 2;
                     const x = Math.sin(angle) * radius;
                     const z = Math.cos(angle) * radius;
-                    
                     const segment = document.createElement('a-box');
                     segment.setAttribute('position', `${x} 0.4 ${z}`);
                     segment.setAttribute('rotation', `0 ${i * (360 / count)} 0`);
@@ -73,10 +69,7 @@
 
         <a-sky src="#mein-himmel" rotation="0 -90 0"></a-sky>
 
-        <a-entity position="0 3.5 -2.5">
-            <a-plane width="1.7" height="1.7" color="#222" opacity="0.5"></a-plane>
-            <a-image src="#mein-logo" width="1.5" height="1.5"></a-image>
-        </a-entity>
+        <a-image src="#mein-logo" position="0 3.5 -2.5" width="1.5" height="1.5" preserveAspect="true"></a-image>
         
         <a-text value="Willkommen am Groeben" align="center" color="#ffffff" position="0 2.2 -2.5" width="5"></a-text>
 
