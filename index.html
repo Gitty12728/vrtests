@@ -2,36 +2,102 @@
 <html lang="de">
 <head>
     <meta charset="utf-8">
-    <title>Gröben Plattform - Controller-Steuerung</title>
+    <title>Gröben Aussichtsplattform - Alles in Einem</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
+
+    <script>
+        // 1. Sound-Logik
+        AFRAME.registerComponent('schritt-sound', {
+            init: function () {
+                this.playing = false;
+                this.lastPos = new THREE.Vector3();
+                this.lastPos.copy(this.el.object3D.position);
+            },
+            tick: function () {
+                let pos = this.el.object3D.position;
+                if (pos.distanceTo(this.lastPos) > 0.02) {
+                    if (!this.playing) { this.el.components.sound.playSound(); this.playing = true; }
+                } else {
+                    if (this.playing) { this.el.components.sound.stopSound(); this.playing = false; }
+                }
+                this.lastPos.copy(pos);
+            }
+        });
+
+        // 2. Unfall-Schutz
+        AFRAME.registerComponent('unfall-schutz', {
+            tick: function () {
+                let pos = this.el.object3D.position;
+                let limit = 2.75;
+                let dist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
+                if (dist > limit) {
+                    let angle = Math.atan2(pos.x, pos.z);
+                    pos.x = Math.sin(angle) * limit;
+                    pos.z = Math.cos(angle) * limit;
+                }
+            }
+        });
+
+        // 3. Brüstungs-Segmente
+        AFRAME.registerComponent('segment-erzeuger', {
+            init: function () {
+                const count = 16;
+                const radius = 2.9;
+                for (let i = 0; i < count; i++) {
+                    const angle = (i / count) * Math.PI * 2;
+                    const x = Math.sin(angle) * radius;
+                    const z = Math.cos(angle) * radius;
+                    const segment = document.createElement('a-box');
+                    segment.setAttribute('position', `${x} 0.4 ${z}`);
+                    segment.setAttribute('rotation', `0 ${i * (360 / count)} 0`);
+                    segment.setAttribute('width', '1.1');
+                    segment.setAttribute('height', '0.8');
+                    segment.setAttribute('depth', '0.1');
+                    segment.setAttribute('material', 'color: #ffffff; transparent: true; opacity: 0.6; roughness: 0.2');
+                    this.el.appendChild(segment);
+                }
+            }
+        });
+    </script>
 </head>
 
 <body>
     <a-scene>
         <a-assets>
+            <img id="mein-himmel" src="360.jpg">
+            <audio id="schritt" src="step.mp3" preload="auto"></audio>
+            <img id="mein-logo" src="logo.jpg">
             <video id="testvideo" src="Testvideo.mp4" loop="true" crossorigin="anonymous" playsinline></video>
         </a-assets>
 
-        <a-video src="#testvideo" position="0 1.8 -1.5" width="2.4" height="1.35" material="shader: flat"></a-video>
+        <a-sky src="#mein-himmel" rotation="0 -90 0"></a-sky>
 
+        <a-image src="#mein-logo" position="0 3.5 -2.5" width="1.5" height="1.5" preserveAspect="true"></a-image>
+        <a-text value="Willkommen am Groeben" align="center" color="#ffffff" position="0 2.2 -2.5" width="5"></a-text>
+
+        <a-cylinder position="0 0 0" radius="3.0" height="0.1" color="#333333" material="roughness: 0.9"></a-cylinder>
+        <a-ring position="0 0.06 0" radius-inner="1.5" radius-outer="2.9" rotation="-90 0 0" color="#444444" opacity="0.3"></a-ring>
+        <a-entity segment-erzeuger></a-entity>
+
+        <a-video src="#testvideo" position="0 1.8 -1.5" width="2.4" height="1.35"></a-video>
         <a-entity position="0 0.8 -1.5">
             <a-box class="clickable" id="play-btn" position="-0.4 0 0" width="0.5" height="0.3" depth="0.05" color="#444">
-                <a-text value="▶" align="center" position="0 0 0.03" scale="0.8 0.8 0.8"></a-text>
+                <a-text value="▶" align="center" position="0 0 0.03"></a-text>
             </a-box>
             <a-box class="clickable" id="stop-btn" position="0.4 0 0" width="0.5" height="0.3" depth="0.05" color="#444">
-                <a-text value="⏹" align="center" position="0 0 0.03" scale="0.6 0.6 0.6"></a-text>
+                <a-text value="⏹" align="center" position="0 0 0.03"></a-text>
             </a-box>
         </a-entity>
 
-        <a-entity id="rig" movement-controls="speed: 0.15">
-            <a-entity camera look-controls position="0 1.6 0"></a-entity>
-            
-            <a-entity laser-controls="hand: left" raycaster="objects: .clickable; showLine: true"></a-entity>
-            <a-entity laser-controls="hand: right" raycaster="objects: .clickable; showLine: true"></a-entity>
+        <a-entity id="rig" movement-controls="speed: 0.15" unfall-schutz sound="src: #schritt; loop: true; volume: 0.5" schritt-sound>
+            <a-entity camera look-controls position="0 1.6 0">
+                <a-cursor raycaster="objects: .clickable"></a-cursor>
+            </a-entity>
+            <a-entity laser-controls="hand: left" raycaster="objects: .clickable"></a-entity>
+            <a-entity laser-controls="hand: right" raycaster="objects: .clickable"></a-entity>
         </a-entity>
-
-        </a-scene>
+    </a-scene>
 
     <script>
         document.querySelector('#play-btn').addEventListener('click', () => document.querySelector('#testvideo').play());
