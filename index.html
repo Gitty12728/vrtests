@@ -5,8 +5,10 @@
     <title>Gröben Aussichtsplattform</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
+    <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script>
 
     <script>
+        // 1. Sound-Logik
         AFRAME.registerComponent('schritt-sound', {
             init: function () {
                 this.playing = false;
@@ -24,6 +26,7 @@
             }
         });
 
+        // 2. Unfall-Schutz
         AFRAME.registerComponent('unfall-schutz', {
             tick: function () {
                 let pos = this.el.object3D.position;
@@ -37,6 +40,7 @@
             }
         });
 
+        // 3. Brüstungs-Segmente
         AFRAME.registerComponent('segment-erzeuger', {
             init: function () {
                 const count = 16;
@@ -65,26 +69,45 @@
             <img id="mein-himmel" src="360.jpg">
             <audio id="schritt" src="step.mp3" preload="auto"></audio>
             <img id="mein-logo" src="logo.jpg">
+            <video id="testvideo" src="Testvideo.mp4" loop="true" crossorigin="anonymous" playsinline></video>
         </a-assets>
 
         <a-sky src="#mein-himmel" rotation="0 -90 0"></a-sky>
 
         <a-image src="#mein-logo" position="0 3.5 -2.5" width="1.5" height="1.5" preserveAspect="true"></a-image>
-        
         <a-text value="Willkommen am Groeben" align="center" color="#ffffff" position="0 2.2 -2.5" width="5"></a-text>
+
+        <a-video src="#testvideo" position="0 1.8 -1.5" width="2.4" height="1.35"></a-video>
+
+        <a-entity position="0 0.8 -1.5">
+            <a-box class="clickable" id="play-btn" position="-0.4 0 0" depth="0.1" width="0.6" height="0.3" color="#2ecc71" 
+                   event-set__click="_event: click; color: #27ae60">
+                <a-text value="PLAY" align="center" position="0 0 0.06" scale="0.5 0.5 0.5"></a-text>
+            </a-box>
+            <a-box class="clickable" id="stop-btn" position="0.4 0 0" depth="0.1" width="0.6" height="0.3" color="#e74c3c" 
+                   event-set__click="_event: click; color: #c0392b">
+                <a-text value="STOP" align="center" position="0 0 0.06" scale="0.5 0.5 0.5"></a-text>
+            </a-box>
+        </a-entity>
 
         <a-cylinder position="0 0 0" radius="3.0" height="0.1" color="#333333" material="roughness: 0.9"></a-cylinder>
         <a-ring position="0 0.06 0" radius-inner="1.5" radius-outer="2.9" rotation="-90 0 0" color="#444444" opacity="0.3"></a-ring>
-
         <a-entity segment-erzeuger></a-entity>
 
-        <a-entity id="rig" 
-                  movement-controls="controls: gamepad, keyboard; speed: 0.15"
-                  unfall-schutz
-                  sound="src: #schritt; loop: true; volume: 0.5"
-                  schritt-sound>
-            <a-entity camera look-controls position="0 1.6 0"></a-entity>
+        <a-entity id="rig" movement-controls="speed: 0.15" unfall-schutz sound="src: #schritt; loop: true; volume: 0.5" schritt-sound>
+            <a-entity camera look-controls position="0 1.6 0">
+                <a-cursor raycaster="objects: .clickable"></a-cursor>
+            </a-entity>
         </a-entity>
     </a-scene>
+
+    <script>
+        document.querySelector('#play-btn').addEventListener('click', () => document.querySelector('#testvideo').play());
+        document.querySelector('#stop-btn').addEventListener('click', () => {
+            const vid = document.querySelector('#testvideo');
+            vid.pause();
+            vid.currentTime = 0;
+        });
+    </script>
 </body>
 </html>
