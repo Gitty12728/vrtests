@@ -2,27 +2,25 @@
 <html lang="de">
 <head>
     <meta charset="utf-8">
-    <title>VR Adventure Playground</title>
+    <title>VR Adventure - My 360 World</title>
 
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
 
     <script>
-        // Die Klick-Reaktion: Objekte hüpfen und wechseln die Farbe
+        // Klick-Reaktion für die Schätze
         AFRAME.registerComponent('klick-reaktion', {
             init: function () {
                 this.el.addEventListener('click', function () {
-                    // Freundliche, leuchtende Abenteuer-Farben
                     const farben = ['#ff7675', '#74b9ff', '#55efc4', '#ffeaa7', '#a29bfe'];
                     const zufallsFarbe = farben[Math.floor(Math.max(0, Math.min(farben.length - 1, Math.random() * farben.length)))];
                     this.setAttribute('color', zufallsFarbe);
 
-                    // Schön geschmeidiger Hüpf-Effekt
                     let pos = this.getAttribute('position');
                     this.setAttribute('animation', {
                         property: 'position',
-                        to: `${pos.x} ${pos.y + 1.5} ${pos.z}`,
+                        to: `${pos.x} ${pos.y + 1.2} ${pos.z}`,
                         dur: 200,
                         dir: 'alternate',
                         loop: 1,
@@ -38,52 +36,38 @@
     <a-scene shadow="type: pcfsoft" cursor="rayOrigin: mouse" raycaster="objects: .klickbar">
         
         <a-assets>
-            <img id="raster-boden" src="https://raw.githubusercontent.com/aframevr/aframe/master/examples/primitives/models/grid.png">
+            <img id="mein-himmel" src="360.jpg">
         </a-assets>
 
-        <a-sky color="#a8e6cf"></a-sky>
+        <a-sky src="#mein-himmel" rotation="0 -90 0"></a-sky>
         
-        <a-ambient-light type="ambient" color="#eee"></a-ambient-light>
-        <a-entity light="type: directional; intensity: 0.6; castShadow: true;" position="-4 10 4"></a-entity>
+        <a-ambient-light type="ambient" color="#fff"></a-ambient-light>
+        <a-entity light="type: directional; intensity: 0.5; castShadow: true;" position="-4 10 4"></a-entity>
 
-        <a-plane src="#raster-boden" repeat="40 40" position="0 0 0" rotation="-90 0 0" width="100" height="100" color="#56ab2f" shadow="receive: true"></a-plane>
+        <a-entity id="bereich-begrenzung" visible="false" nav-mesh>
+            <a-plane position="0 0.01 0" rotation="-90 0 0" width="14" height="14"></a-plane>
+        </a-entity>
 
-        <a-text value="ABENTEUER SPIELPLATZ" align="center" color="#2c3e50" position="0 3.5 -5" width="8" font="mozillavr"></a-text>
-        <a-text value="Nutze den linken Stick zum Laufen und den rechten Laser zum Klicken!" align="center" color="#34495e" position="0 2.8 -5" width="4"></a-text>
+        <a-plane position="0 0 0" rotation="-90 0 0" width="14" height="14" color="#2ecc71" opacity="0.7" shadow="receive: true"></a-plane>
 
-        <a-box class="klickbar" klick-reaktion position="-2.5 0.5 -4" color="#ff7675" depth="1" width="1" height="1" shadow>
-            <a-text value="Klicke!" align="center" color="#fff" position="0 0 0.51" width="3"></a-text>
-        </a-box>
-        <a-box class="klickbar" klick-reaktion position="0 0.5 -5" color="#74b9ff" depth="1" width="1" height="1" shadow>
-            <a-text value="Klicke!" align="center" color="#fff" position="0 0 0.51" width="3"></a-text>
-        </a-box>
-        <a-box class="klickbar" klick-reaktion position="2.5 0.5 -4" color="#55efc4" depth="1" width="1" height="1" shadow>
-            <a-text value="Klicke!" align="center" color="#fff" position="0 0 0.51" width="3"></a-text>
-        </a-box>
+        <a-box position="-7 0.5 0" width="0.2" height="1" depth="14" color="#d35400"></a-box>
+        <a-box position="7 0.5 0" width="0.2" height="1" depth="14" color="#d35400"></a-box>
+        <a-box position="0 0.5 -7" width="14" height="1" depth="0.2" color="#d35400"></a-box>
+        <a-box position="0 0.5 7" width="14" height="1" depth="0.2" color="#d35400"></a-box>
 
-        <a-cylinder position="-4 4 -15" radius="0.5" height="8" color="#ffeaa7" shadow></a-cylinder>
-        <a-cylinder position="4 4 -15" radius="0.5" height="8" color="#ffeaa7" shadow></a-cylinder>
-        <a-box position="0 8 -15" width="9" height="1" depth="1" color="#ffeaa7" shadow></a-box>
-        <a-text value="DAS ANFANGSTOR" align="center" color="#d35400" position="0 9 -14.9" width="10"></a-text>
+        <a-text value="MEINE ABENTEUER WELT" align="center" color="#fff" position="0 3.5 -4" width="7" font="mozillavr"></a-text>
 
-        <a-cone position="-8 2 -10" radius-bottom="1" radius-top="0" height="4" color="#a29bfe" shadow></a-cone>
-        <a-cone position="8 2 -10" radius-bottom="1" radius-top="0" height="4" color="#fd79a8" shadow></a-cone>
-        
-        <a-box position="-5 5 -8" width="2" height="0.2" depth="2" color="#fab1a0" shadow></a-box>
-        <a-box position="5 6 -12" width="3" height="0.2" depth="3" color="#ffeaa7" shadow></a-box>
+        <a-box class="klickbar" klick-reaktion position="-2 0.5 -3" color="#ff7675" shadow></a-box>
+        <a-box class="klickbar" klick-reaktion position="0 0.5 -4" color="#74b9ff" shadow></a-box>
+        <a-box class="klickbar" klick-reaktion position="2 0.5 -3" color="#55efc4" shadow></a-box>
 
-
-        <a-entity id="rig" movement-controls="controls: gamepad; speed: 0.25; constrainToNavMesh: false">
-            
+        <a-entity id="rig" movement-controls="controls: gamepad; speed: 0.2; constrainToNavMesh: true">
             <a-entity id="camera" camera look-controls position="0 1.6 0"></a-entity>
-
             <a-entity oculus-touch-controls="hand: left"></a-entity>
-
             <a-entity oculus-touch-controls="hand: right" 
                       laser-controls="hand: right" 
-                      raycaster="objects: .klickbar; far: 30; lineColor: #e74c3c; lineOpacity: 0.9;">
+                      raycaster="objects: .klickbar; far: 20; lineColor: #e74c3c; lineOpacity: 0.9;">
             </a-entity>
-
         </a-entity>
 
     </a-scene>
