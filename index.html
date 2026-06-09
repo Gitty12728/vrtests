@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
 
     <script>
-        // 1. Sound-Logik: Saubere Loops ohne Stottern
+        // Sound-Logik
         AFRAME.registerComponent('schritt-sound', {
             init: function () {
                 this.playing = false;
@@ -25,11 +25,11 @@
             }
         });
 
-        // 2. Die "unsichtbare, unüberwindbare Barriere" (Garantie gegen Runterfallen)
+        // Die "Garantie-Wand" – angepasst auf den neuen, kleineren Radius von 2.8m
         AFRAME.registerComponent('unfall-schutz', {
             tick: function () {
                 let pos = this.el.object3D.position;
-                let limit = 6.4; // Exakt der Radius deiner Plattform
+                let limit = 2.8; 
                 let dist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
                 
                 if (dist > limit) {
@@ -50,10 +50,11 @@
 
         <a-sky src="#mein-himmel" rotation="0 -90 0"></a-sky>
         
-        <a-text value="Willkommen am Groeben" align="center" color="#ffffff" position="0 3 -4" width="7"></a-text>
+        <a-text value="Willkommen am Groeben" align="center" color="#ffffff" position="0 2.5 -2.5" width="5"></a-text>
 
-        <a-cylinder position="0 0.4 0" radius="6.5" height="0.8" color="#7a6a53" material="side: double" open-ended="true"></a-cylinder>
-        <a-cylinder position="0 0 0" radius="6.6" height="0.2" color="#3e4444"></a-cylinder>
+        <a-cylinder position="0 0.4 0" radius="2.9" height="0.8" color="#7a6a53" material="side: double" open-ended="true"></a-cylinder>
+        
+        <a-cylinder position="0 0 0" radius="3.0" height="0.1" color="#2a2a2a" material="roughness: 1.0"></a-cylinder>
 
         <a-entity id="rig" 
                   movement-controls="controls: gamepad, keyboard; speed: 0.15"
