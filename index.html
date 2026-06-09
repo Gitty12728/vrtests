@@ -2,72 +2,80 @@
 <html lang="de">
 <head>
     <meta charset="utf-8">
-    <title>VR Adventure - My 360 World</title>
+    <title>Circular VR Observation Deck</title>
 
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
 
     <script>
-        // Klick-Reaktion für die Schätze
-        AFRAME.registerComponent('klick-reaktion', {
+        // Custom Komponente für die Schrittgeräusche beim Laufen
+        AFRAME.registerComponent('schritt-sound', {
             init: function () {
-                this.el.addEventListener('click', function () {
-                    const farben = ['#ff7675', '#74b9ff', '#55efc4', '#ffeaa7', '#a29bfe'];
-                    const zufallsFarbe = farben[Math.floor(Math.max(0, Math.min(farben.length - 1, Math.random() * farben.length)))];
-                    this.setAttribute('color', zufallsFarbe);
+                this.rig = this.el;
+                this.playing = false;
+                this.lastPosition = new THREE.Vector3();
+                this.lastPosition.copy(this.rig.object3D.position);
+            },
+            tick: function () {
+                // Prüfen, ob der Spieler sich bewegt
+                let currentPosition = this.rig.object3D.position;
+                let dist = currentPosition.distanceTo(this.lastPosition);
 
-                    let pos = this.getAttribute('position');
-                    this.setAttribute('animation', {
-                        property: 'position',
-                        to: `${pos.x} ${pos.y + 1.2} ${pos.z}`,
-                        dur: 200,
-                        dir: 'alternate',
-                        loop: 1,
-                        easing: 'easeOutQuad'
-                    });
-                });
+                // Wenn sich die Position ändert, spielen wir den Sound geloopt ab
+                if (dist > 0.01) {
+                    if (!this.playing) {
+                        this.el.components.sound.playSound();
+                        this.playing = true;
+                    }
+                } else {
+                    if (this.playing) {
+                        this.el.components.sound.pauseSound();
+                        this.playing = false;
+                    }
+                }
+                this.lastPosition.copy(currentPosition);
             }
         });
     </script>
 </head>
 
 <body>
-    <a-scene shadow="type: pcfsoft" cursor="rayOrigin: mouse" raycaster="objects: .klickbar">
+    <a-scene shadow="type: pcfsoft">
         
         <a-assets>
             <img id="mein-himmel" src="360.jpg">
+            <audio id="schritt" src="step.mp3" preload="auto"></audio>
         </a-assets>
 
         <a-sky src="#mein-himmel" rotation="0 -90 0"></a-sky>
         
-        <a-ambient-light type="ambient" color="#fff"></a-ambient-light>
-        <a-entity light="type: directional; intensity: 0.5; castShadow: true;" position="-4 10 4"></a-entity>
+        <a-ambient-light type="ambient" color="#e0dbd5"></a-ambient-light>
+        <a-entity light="type: directional; intensity: 0.6; castShadow: true;" position="-4 8 4"></a-entity>
 
         <a-entity id="bereich-begrenzung" visible="false" nav-mesh>
-            <a-plane position="0 0.01 0" rotation="-90 0 0" width="14" height="14"></a-plane>
+            <a-cylinder position="0 0.01 0" radius="6.5" height="0.01"></a-cylinder>
         </a-entity>
 
-        <a-plane position="0 0 0" rotation="-90 0 0" width="14" height="14" color="#2ecc71" opacity="0.7" shadow="receive: true"></a-plane>
+        <a-cylinder position="0 0 0" radius="6.7" height="0.2" color="#3e4444" shadow="receive: true"></a-cylinder>
 
-        <a-box position="-7 0.5 0" width="0.2" height="1" depth="14" color="#d35400"></a-box>
-        <a-box position="7 0.5 0" width="0.2" height="1" depth="14" color="#d35400"></a-box>
-        <a-box position="0 0.5 -7" width="14" height="1" depth="0.2" color="#d35400"></a-box>
-        <a-box position="0 0.5 7" width="14" height="1" depth="0.2" color="#d35400"></a-box>
+        <a-cylinder position="0 0.4 0" radius="6.6" height="0.8" color="#7a6a53" material="side: double" open-ended="true" shadow></a-cylinder>
 
-        <a-text value="MEINE ABENTEUER WELT" align="center" color="#fff" position="0 3.5 -4" width="7" font="mozillavr"></a-text>
 
-        <a-box class="klickbar" klick-reaktion position="-2 0.5 -3" color="#ff7675" shadow></a-box>
-        <a-box class="klickbar" klick-reaktion position="0 0.5 -4" color="#74b9ff" shadow></a-box>
-        <a-box class="klickbar" klick-reaktion position="2 0.5 -3" color="#55efc4" shadow></a-box>
+        <a-text value="OBSERVATION DECK" align="center" color="#ffffff" position="0 2.5 -4" width="5" font="mozillavr"></a-text>
 
-        <a-entity id="rig" movement-controls="controls: gamepad; speed: 0.2; constrainToNavMesh: true">
+
+        <a-entity id="rig" 
+                  movement-controls="controls: gamepad; speed: 0.15; constrainToNavMesh: true"
+                  sound="src: #schritt; loop: true; volume: 0.5"
+                  schritt-sound>
+            
             <a-entity id="camera" camera look-controls position="0 1.6 0"></a-entity>
+
             <a-entity oculus-touch-controls="hand: left"></a-entity>
-            <a-entity oculus-touch-controls="hand: right" 
-                      laser-controls="hand: right" 
-                      raycaster="objects: .klickbar; far: 20; lineColor: #e74c3c; lineOpacity: 0.9;">
-            </a-entity>
+
+            <a-entity oculus-touch-controls="hand: right"></a-entity>
+
         </a-entity>
 
     </a-scene>
