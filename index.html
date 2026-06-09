@@ -2,57 +2,68 @@
 <html lang="de">
 <head>
     <meta charset="utf-8">
-    <title>Gröben Plattform - Fehlerfrei</title>
+    <title>Gröben Plattform - Endgültig</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
+
+    <script>
+        // Brüstungs-Segmente
+        AFRAME.registerComponent('segment-erzeuger', {
+            init: function () {
+                for (let i = 0; i < 16; i++) {
+                    const angle = (i / 16) * Math.PI * 2;
+                    const segment = document.createElement('a-box');
+                    segment.setAttribute('position', `${Math.sin(angle) * 2.9} 0.4 ${Math.cos(angle) * 2.9}`);
+                    segment.setAttribute('rotation', `0 ${i * (360 / 16)} 0`);
+                    segment.setAttribute('width', '1.1');
+                    segment.setAttribute('height', '0.8');
+                    segment.setAttribute('depth', '0.1');
+                    segment.setAttribute('material', 'color: #ffffff; transparent: true; opacity: 0.6');
+                    this.el.appendChild(segment);
+                }
+            }
+        });
+    </script>
 </head>
 
 <body>
-    <a-scene>
+    <a-scene cursor="rayOrigin: mouse" raycaster="objects: .clickable">
         <a-assets>
-            <img id="mein-himmel" src="360.jpg">
-            <audio id="schritt" src="step.mp3" preload="auto"></audio>
-            <img id="mein-logo" src="logo.jpg">
-            <video id="testvideo" src="Testvideo.mp4" loop="true" crossorigin="anonymous" playsinline></video>
+            <img id="himmel" src="360.jpg">
+            <img id="logo" src="logo.jpg">
+            <video id="vid" src="Testvideo.mp4" loop="true" crossorigin="anonymous" playsinline></video>
         </a-assets>
 
-        <a-sky src="#mein-himmel" rotation="0 -90 0"></a-sky>
+        <a-sky src="#himmel"></a-sky>
 
-        <a-image src="#mein-logo" position="0 3.5 -2.5" width="1.5" height="1.5" preserveAspect="true"></a-image>
-        <a-text value="Willkommen am Groeben" align="center" position="0 2.2 -2.5" width="5"></a-text>
-
-        <a-video src="#testvideo" position="0 1.8 -1.5" width="2.4" height="1.35"></a-video>
+        <a-entity segment-erzeuger></a-entity>
+        <a-cylinder position="0 0 0" radius="3.0" height="0.1" color="#333333"></a-cylinder>
         
-        <a-entity id="button-container" position="0 0.8 -1.5">
-            <a-box class="clickable" id="play-btn" position="-0.4 0 0" width="0.5" height="0.3" depth="0.1" color="#666"></a-box>
-            <a-text value="PLAY" position="-0.4 0 0.06" align="center" scale="0.5 0.5 0.5"></a-text>
-            
-            <a-box class="clickable" id="stop-btn" position="0.4 0 0" width="0.5" height="0.3" depth="0.1" color="#666"></a-box>
-            <a-text value="STOP" position="0.4 0 0.06" align="center" scale="0.5 0.5 0.5"></a-text>
+        <a-image src="#logo" position="0 3.5 -2.5" width="1.5" height="1.5"></a-image>
+        <a-video id="screen" src="#vid" position="0 1.8 -1.5" width="2.4" height="1.35"></a-video>
+
+        <a-entity position="0 0.8 -1.5">
+            <a-box class="clickable" id="play-btn" position="-0.4 0 0" width="0.5" height="0.3" depth="0.1" color="#444">
+                <a-text value="▶" align="center" position="0 0 0.06"></a-text>
+            </a-box>
+            <a-box class="clickable" id="stop-btn" position="0.4 0 0" width="0.5" height="0.3" depth="0.1" color="#444">
+                <a-text value="⏹" align="center" position="0 0 0.06"></a-text>
+            </a-box>
         </a-entity>
 
-        <a-cylinder position="0 0 0" radius="3.0" height="0.1" color="#333333"></a-cylinder>
-
         <a-entity id="rig" movement-controls="speed: 0.15">
-            <a-entity camera look-controls position="0 1.6 0"></a-entity>
-            
-            <a-entity laser-controls="hand: right" raycaster="objects: .clickable"></a-entity>
-            <a-entity laser-controls="hand: left" raycaster="objects: .clickable"></a-entity>
+            <a-entity camera look-controls position="0 1.6 0">
+                <a-cursor fuse="false"></a-cursor>
+            </a-entity>
+            <a-entity laser-controls="hand: right"></a-entity>
+            <a-entity laser-controls="hand: left"></a-entity>
         </a-entity>
     </a-scene>
 
     <script>
-        // Logik separat, damit sie sauber lädt
-        const video = document.querySelector('#testvideo');
-        
-        document.querySelector('#play-btn').addEventListener('click', () => {
-            video.play();
-        });
-        
-        document.querySelector('#stop-btn').addEventListener('click', () => {
-            video.pause();
-            video.currentTime = 0;
-        });
+        const video = document.querySelector('#vid');
+        document.querySelector('#play-btn').addEventListener('click', () => video.play());
+        document.querySelector('#stop-btn').addEventListener('click', () => { video.pause(); video.currentTime = 0; });
     </script>
 </body>
 </html>
