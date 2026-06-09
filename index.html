@@ -17,10 +17,18 @@
             tick: function () {
                 let currentPosition = this.el.object3D.position;
                 let dist = currentPosition.distanceTo(this.lastPosition);
+                // Schwellenwert: Bewegung registrieren
                 if (dist > 0.005) {
-                    if (!this.playing) { this.el.components.sound.playSound(); this.playing = true; }
+                    if (!this.playing) { 
+                        this.el.components.sound.playSound(); 
+                        this.playing = true; 
+                    }
                 } else {
-                    if (this.playing) { this.el.components.sound.stopSound(); this.playing = false; }
+                    // Wenn wir stehen, Sound nur stoppen, wenn er wirklich läuft
+                    if (this.playing) { 
+                        this.el.components.sound.stopSound(); 
+                        this.playing = false; 
+                    }
                 }
                 this.lastPosition.copy(currentPosition);
             }
@@ -36,24 +44,17 @@
 
         <a-sky src="#mein-himmel" rotation="0 -90 0"></a-sky>
 
-        <a-text value="Willkommen am Groeben" 
-                align="center" 
-                color="#ffffff" 
-                position="0 3.5 -4" 
-                width="8" 
-                side="double">
-        </a-text>
+        <a-text value="Willkommen am Groeben" align="center" color="#ffffff" position="0 3 -4" width="7"></a-text>
 
         <a-box static-body position="0 -0.1 0" width="12" height="0.2" depth="12" color="#3e4444"></a-box>
 
-        <a-box static-body position="0 0.5 6" width="12" height="1" depth="0.5" color="#7a6a53"></a-box>
-        <a-box static-body position="0 0.5 -6" width="12" height="1" depth="0.5" color="#7a6a53"></a-box>
-        <a-box static-body position="6 0.5 0" width="0.5" height="1" depth="13" color="#7a6a53"></a-box>
-        <a-box static-body position="-6 0.5 0" width="0.5" height="1" depth="13" color="#7a6a53"></a-box>
+        <a-box static-body position="0 0.3 6" width="12" height="0.6" depth="1.5" color="#7a6a53"></a-box>
+        <a-box static-body position="0 0.3 -6" width="12" height="0.6" depth="1.5" color="#7a6a53"></a-box>
+        <a-box static-body position="6 0.3 0" width="1.5" height="0.6" depth="13" color="#7a6a53"></a-box>
+        <a-box static-body position="-6 0.3 0" width="1.5" height="0.6" depth="13" color="#7a6a53"></a-box>
 
         <a-entity id="rig" 
                   movement-controls="controls: gamepad, keyboard; speed: 0.15"
-                  position="0 0 0"
                   sound="src: #schritt; loop: true; volume: 0.5"
                   schritt-sound>
             <a-entity camera look-controls position="0 1.6 0" dynamic-body="shape: cylinder; cylinderAxis: y; mass: 1"></a-entity>
