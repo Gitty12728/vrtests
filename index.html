@@ -1,81 +1,64 @@
 <!DOCTYPE html>
 <html lang="de">
-  <head>
+<head>
     <meta charset="utf-8">
     <title>Quest 2 Perfect Controls</title>
-    
-    <!-- Stabile A-Frame Version -->
+
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     
-    <!-- Die absolut wichtigste Erweiterung für Bewegung und Teleport auf der Quest -->
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
+
     <script>
-      // Klick-Reaktion für die Objekte
-      AFRAME.registerComponent('klick-reaktion', {
-        init: function () {
-          this.el.addEventListener('click', function () {
-            // Farbe zufällig ändern
-            const farben = ['#ef4444', '#3b82f6', '#10b981', '#eab308', '#a855f7'];
-            const zufallsFarbe = farben[Math.floor(Math.random() * farben.length)];
-            this.setAttribute('color', zufallsFarbe);
-            
-            // Objekt hüpfen lassen
-            let pos = this.getAttribute('position');
-            this.setAttribute('animation', {
-              property: 'position',
-              to: `${pos.x} ${pos.y + 1} ${pos.z}`,
-              dur: 150,
-              dir: 'alternate',
-              loop: 1
-            });
-          });
-        }
-      });
+        // Klick-Reaktion für die Objekte
+        AFRAME.registerComponent('klick-reaktion', {
+            init: function () {
+                this.el.addEventListener('click', function () {
+                    // Farbe zufällig ändern
+                    const farben = ['#ef4444', '#3b82f6', '#10b981', '#eab308', '#a855f7'];
+                    const zufallsFarbe = farben[Math.floor(Math.max(0, Math.min(farben.length - 1, Math.random() * farben.length)))];
+                    this.setAttribute('color', zufallsFarbe);
+
+                    // Objekt hüpfen lassen
+                    let pos = this.getAttribute('position');
+                    this.setAttribute('animation', {
+                        property: 'position',
+                        to: `${pos.x} ${pos.y + 1} ${pos.z}`,
+                        dur: 150,
+                        dir: 'alternate',
+                        loop: 1,
+                        easing: 'easeOutQuad'
+                    });
+                });
+            }
+        });
     </script>
-  </head>
-  <body>
+</head>
 
-    <a-scene xr-mode-ui="XRMode: xr">
-      
-      <!-- Himmel und Licht -->
-      <a-sky color="#0f172a"></a-sky>
-      <a-ambient-light type="ambient" color="#666"></a-ambient-light>
-      <a-entity light="type: directional; intensity: 0.6;" position="1 4 3"></a-entity>
-      
-      <!-- Boden (Wichtig: Klasse "balkon" für Teleport-Ziel) -->
-      <a-plane class="balkon" position="0 0 0" rotation="-90 0 0" width="100" height="100" color="#1e293b"></a-plane>
-      <a-grid src="https://raw.githubusercontent.com/aframevr/aframe/master/examples/primitives/models/grid.png" size="100" bounds="50 50"></a-grid>
-
-      <!-- Interaktive Objekte -->
-      <a-box class="klickbar" klick-reaktion position="-2 0.5 -4" color="#ef4444"></a-box>
-      <a-sphere class="klickbar" klick-reaktion position="0 1.2 -5" radius="0.7" color="#3b82f6"></a-sphere>
-      <a-box class="klickbar" klick-reaktion position="2 0.5 -4" color="#10b981"></a-box>
-
-
-      <!-- === DAS SPIELER SETUP (Hie passiert die Magie) === -->
-      <a-entity id="rig" movement-controls="controls: oculus-touch-controls, gamepad, keyboard; speed: 0.15;">
+<body>
+    <scene shadow="type: pcfsoft" cursor="rayOrigin: mouse" raycaster="objects: .klickbar">
         
-        <!-- Die Kamera (Kopf des Spielers) -->
-        <a-entity camera look-controls position="0 1.6 0"></a-entity>
-        
-        <!-- LINKER CONTROLLER (Laufen mit Joystick) -->
-        <a-entity oculus-touch-controls="hand: left" 
-                  laser-controls="hand: left"
-                  raycaster="objects: .klickbar; far: 10;">
+        <a-sky color="#0f172a"></a-sky>
+        <a-ambient-light type="ambient" color="#444"></a-ambient-light>
+        <a-entity light="type: directional; intensity: 0.8; castShadow: true;" position="-2 5 3"></a-entity>
+
+        <a-plane class="boden" position="0 0 0" rotation="-90 0 0" width="50" height="50" color="#1e293b" shadow="receive: true"></a-plane>
+
+        <a-box class="klickbar" klick-reaktion position="-2 0.5 -4" color="#ef4444" shadow></a-box>
+        <a-box class="klickbar" klick-reaktion position="0 0.5 -5" color="#3b82f6" shadow></a-box>
+        <a-box class="klickbar" klick-reaktion position="2 0.5 -4" color="#10b981" shadow></a-box>
+
+        <a-entity id="rig" movement-controls="controls: checkpoint, gamepad; speed: 0.2; constrainToNavMesh: false">
+            
+            <a-entity id="camera" camera look-controls position="0 1.6 0"></a-entity>
+
+            <a-entity oculus-touch-controls="hand: left"></a-entity>
+
+            <a-entity oculus-touch-controls="hand: right" 
+                      laser-controls="hand: right" 
+                      raycaster="objects: .klickbar; far: 20; lineColor: #ef4444; lineOpacity: 0.8;">
+            </a-entity>
+
         </a-entity>
-        
-        <!-- RECHTER CONTROLLER (Drehen mit Joystick + Teleportieren mit Trigger + Klicken) -->
-        <a-entity oculus-touch-controls="hand: right"
-                  snap-turn-controls="reference: #rig; turnAngle: 45;"
-                  blink-teleport="cameraRig: #rig; collisionEntities: .balkon; hitCylinderColor: #3b82f6;"
-                  laser-controls="hand: right"
-                  raycaster="objects: .klickbar; far: 10; lineColor: #3b82f6;">
-        </a-entity>
-
-      </a-entity>
-
-    </a-scene>
-
-  </body>
+        </scene>
+</body>
 </html>
