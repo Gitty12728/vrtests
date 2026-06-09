@@ -2,36 +2,14 @@
 <html lang="de">
 <head>
     <meta charset="utf-8">
-    <title>Gröben Plattform - Absolut Stabil</title>
+    <title>Gröben Plattform - Sound entkoppelt</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.2/dist/aframe-physics-system.min.js"></script>
-
-    <script>
-        // Brüstung mit harter Kollisionsbox
-        AFRAME.registerComponent('segment-erzeuger', {
-            init: function () {
-                const count = 16;
-                const radius = 2.9;
-                for (let i = 0; i < count; i++) {
-                    const angle = (i / count) * Math.PI * 2;
-                    const segment = document.createElement('a-box');
-                    segment.setAttribute('position', `${Math.sin(angle) * radius} 0.4 ${Math.cos(angle) * radius}`);
-                    segment.setAttribute('rotation', `0 ${i * (360 / count)} 0`);
-                    segment.setAttribute('width', '1.1');
-                    segment.setAttribute('height', '1.2');
-                    segment.setAttribute('depth', '0.3'); // Etwas tiefer für sicherere Kollision
-                    segment.setAttribute('static-body', 'shape: box');
-                    segment.setAttribute('material', 'color: #ffffff; transparent: true; opacity: 0.6');
-                    this.el.appendChild(segment);
-                }
-            }
-        });
-    </script>
 </head>
 
 <body>
-    <a-scene physics="gravity: 0; debug: false" cursor="rayOrigin: mouse" raycaster="objects: .clickable">
+    <a-scene physics="gravity: 0">
         <a-assets>
             <img id="himmel" src="360.jpg">
             <img id="logo" src="logo.jpg">
@@ -43,49 +21,43 @@
         <a-sky src="#himmel"></a-sky>
 
         <a-cylinder position="0 0 0" radius="3.0" height="0.1" color="#333333" static-body></a-cylinder>
-        <a-entity segment-erzeuger></a-entity>
+        <a-entity id="bruestung">
+            <a-box position="2.9 0.4 0" rotation="0 90 0" width="1.1" height="1.2" depth="0.3" static-body material="color: #fff; opacity: 0.6"></a-box>
+            <a-box position="-2.9 0.4 0" rotation="0 90 0" width="1.1" height="1.2" depth="0.3" static-body material="color: #fff; opacity: 0.6"></a-box>
+            <a-box position="0 0.4 2.9" rotation="0 0 0" width="1.1" height="1.2" depth="0.3" static-body material="color: #fff; opacity: 0.6"></a-box>
+            <a-box position="0 0.4 -2.9" rotation="0 0 0" width="1.1" height="1.2" depth="0.3" static-body material="color: #fff; opacity: 0.6"></a-box>
+        </a-entity>
         
-        <a-entity id="pflanze" gltf-model="#mein-modell" position="0 0 0" scale="1 1 1" static-body="shape: hull"></a-entity>
+        <a-entity gltf-model="#mein-modell" position="0 0 0" scale="1 1 1" static-body="shape: hull"></a-entity>
         
         <a-image src="#logo" position="0 3.5 -2.5" width="2.4" height="0.8"></a-image>
         <a-video id="screen" src="#vid" position="0 1.8 -1.5" width="2.4" height="1.35"></a-video>
 
-        <a-entity id="sound-emitter" position="0 1.8 -1.5" 
-                  sound="src: #audio-file; positional: true; refDistance: 1; rolloffFactor: 2; volume: 2">
+        <a-entity id="sound-container" sound="src: #audio-file; volume: 1"></a-entity>
+
+        <a-entity id="rig" movement-controls="speed: 0.15" position="0 0 0">
+            <a-entity camera look-controls position="0 1.6 0" kinematic-body="radius: 0.4"></a-entity>
         </a-entity>
 
         <a-entity position="0 0.8 -1.5">
-            <a-box class="clickable" id="play-btn" position="-0.4 0 0" width="0.5" height="0.3" depth="0.1" color="#555"></a-box>
-            <a-text value="PLAY" align="center" position="-0.4 0 0.06" scale="0.4 0.4 0.4"></a-text>
-            
-            <a-box class="clickable" id="stop-btn" position="0.4 0 0" width="0.5" height="0.3" depth="0.1" color="#555"></a-box>
-            <a-text value="STOP" align="center" position="0.4 0 0.06" scale="0.4 0.4 0.4"></a-text>
-        </a-entity>
-
-        <a-entity id="rig" movement-controls="controls: keyboard, gamepad; speed: 0.15" position="0 0 0">
-            <a-entity camera look-controls position="0 1.6 0" kinematic-body="radius: 0.3"></a-entity>
-            <a-entity laser-controls="hand: right" raycaster="objects: .clickable; showLine: true"></a-entity>
-            <a-entity laser-controls="hand: left" raycaster="objects: .clickable; showLine: true"></a-entity>
+            <a-box class="clickable" id="play-btn" position="-0.4 0 0" width="0.5" height="0.3" color="#555"></a-box>
+            <a-box class="clickable" id="stop-btn" position="0.4 0 0" width="0.5" height="0.3" color="#555"></a-box>
         </a-entity>
     </a-scene>
 
     <script>
         const video = document.querySelector('#vid');
-        const soundEmitter = document.querySelector('#sound-emitter');
-
+        const sound = document.querySelector('#sound-container');
+        
         document.querySelector('#play-btn').addEventListener('click', () => {
-            // Audio-Context für Browser-Berechtigung erzwingen
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            audioCtx.resume();
-            
             video.play();
-            soundEmitter.components.sound.playSound();
+            sound.components.sound.playSound(); // Spielt das Audio-File separat ab
         });
         
         document.querySelector('#stop-btn').addEventListener('click', () => { 
             video.pause(); 
             video.currentTime = 0; 
-            soundEmitter.components.sound.stopSound();
+            sound.components.sound.stopSound();
         });
     </script>
 </body>
