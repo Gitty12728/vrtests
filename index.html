@@ -2,12 +2,12 @@
 <html lang="de">
 <head>
     <meta charset="utf-8">
-    <title>Willkommen am Gröben</title>
+    <title>Gröben Aussichtsplattform</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
 
     <script>
-        // 1. Sound-Logik: Saubere Loops
+        // 1. Sound-Logik: Saubere Loops ohne Stottern
         AFRAME.registerComponent('schritt-sound', {
             init: function () {
                 this.playing = false;
@@ -16,7 +16,7 @@
             },
             tick: function () {
                 let pos = this.el.object3D.position;
-                if (pos.distanceTo(this.lastPos) > 0.005) {
+                if (pos.distanceTo(this.lastPos) > 0.01) {
                     if (!this.playing) { this.el.components.sound.playSound(); this.playing = true; }
                 } else {
                     if (this.playing) { this.el.components.sound.stopSound(); this.playing = false; }
@@ -25,16 +25,17 @@
             }
         });
 
-        // 2. Die "Garantie-Wand" (Constraint): Lässt dich nie über den Radius 6.0 hinaus
-        AFRAME.registerComponent('festung-begrenzung', {
+        // 2. Die "unsichtbare, unüberwindbare Barriere" (Garantie gegen Runterfallen)
+        AFRAME.registerComponent('unfall-schutz', {
             tick: function () {
                 let pos = this.el.object3D.position;
-                let radius = 6.0; // Deine Grenze
+                let limit = 6.4; // Exakt der Radius deiner Plattform
                 let dist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
-                if (dist > radius) {
+                
+                if (dist > limit) {
                     let angle = Math.atan2(pos.x, pos.z);
-                    pos.x = Math.sin(angle) * radius;
-                    pos.z = Math.cos(angle) * radius;
+                    pos.x = Math.sin(angle) * limit;
+                    pos.z = Math.cos(angle) * limit;
                 }
             }
         });
@@ -48,14 +49,15 @@
         </a-assets>
 
         <a-sky src="#mein-himmel" rotation="0 -90 0"></a-sky>
+        
         <a-text value="Willkommen am Groeben" align="center" color="#ffffff" position="0 3 -4" width="7"></a-text>
 
-        <a-cylinder position="0 0.5 0" radius="6.1" height="0.8" color="#7a6a53" material="side: double" open-ended="true"></a-cylinder>
-        <a-cylinder position="0 0 0" radius="6.5" height="0.2" color="#3e4444"></a-cylinder>
+        <a-cylinder position="0 0.4 0" radius="6.5" height="0.8" color="#7a6a53" material="side: double" open-ended="true"></a-cylinder>
+        <a-cylinder position="0 0 0" radius="6.6" height="0.2" color="#3e4444"></a-cylinder>
 
         <a-entity id="rig" 
                   movement-controls="controls: gamepad, keyboard; speed: 0.15"
-                  festung-begrenzung
+                  unfall-schutz
                   sound="src: #schritt; loop: true; volume: 0.5"
                   schritt-sound>
             <a-entity camera look-controls position="0 1.6 0"></a-entity>
