@@ -2,28 +2,28 @@
 <html lang="de">
 <head>
     <meta charset="utf-8">
-    <title>Quest 2 Perfect Controls</title>
+    <title>VR Adventure Playground</title>
 
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
 
     <script>
-        // Klick-Reaktion für die Objekte
+        // Die Klick-Reaktion: Objekte hüpfen und wechseln die Farbe
         AFRAME.registerComponent('klick-reaktion', {
             init: function () {
                 this.el.addEventListener('click', function () {
-                    // Farbe zufällig ändern
-                    const farben = ['#ef4444', '#3b82f6', '#10b981', '#eab308', '#a855f7'];
+                    // Freundliche, leuchtende Abenteuer-Farben
+                    const farben = ['#ff7675', '#74b9ff', '#55efc4', '#ffeaa7', '#a29bfe'];
                     const zufallsFarbe = farben[Math.floor(Math.max(0, Math.min(farben.length - 1, Math.random() * farben.length)))];
                     this.setAttribute('color', zufallsFarbe);
 
-                    // Objekt hüpfen lassen
+                    // Schön geschmeidiger Hüpf-Effekt
                     let pos = this.getAttribute('position');
                     this.setAttribute('animation', {
                         property: 'position',
-                        to: `${pos.x} ${pos.y + 1} ${pos.z}`,
-                        dur: 150,
+                        to: `${pos.x} ${pos.y + 1.5} ${pos.z}`,
+                        dur: 200,
                         dir: 'alternate',
                         loop: 1,
                         easing: 'easeOutQuad'
@@ -37,17 +37,43 @@
 <body>
     <a-scene shadow="type: pcfsoft" cursor="rayOrigin: mouse" raycaster="objects: .klickbar">
         
-        <a-sky color="#0f172a"></a-sky>
-        <a-ambient-light type="ambient" color="#444"></a-ambient-light>
-        <a-entity light="type: directional; intensity: 0.8; castShadow: true;" position="-2 5 3"></a-entity>
+        <a-assets>
+            <img id="raster-boden" src="https://raw.githubusercontent.com/aframevr/aframe/master/examples/primitives/models/grid.png">
+        </a-assets>
 
-        <a-plane class="boden" position="0 0 0" rotation="-90 0 0" width="50" height="50" color="#1e293b" shadow="receive: true"></a-plane>
+        <a-sky color="#a8e6cf"></a-sky>
+        
+        <a-ambient-light type="ambient" color="#eee"></a-ambient-light>
+        <a-entity light="type: directional; intensity: 0.6; castShadow: true;" position="-4 10 4"></a-entity>
 
-        <a-box class="klickbar" klick-reaktion position="-2 0.5 -4" color="#ef4444" shadow></a-box>
-        <a-box class="klickbar" klick-reaktion position="0 0.5 -5" color="#3b82f6" shadow></a-box>
-        <a-box class="klickbar" klick-reaktion position="2 0.5 -4" color="#10b981" shadow></a-box>
+        <a-plane src="#raster-boden" repeat="40 40" position="0 0 0" rotation="-90 0 0" width="100" height="100" color="#56ab2f" shadow="receive: true"></a-plane>
 
-        <a-entity id="rig" movement-controls="controls: checkpoint, gamepad; speed: 0.2; constrainToNavMesh: false">
+        <a-text value="ABENTEUER SPIELPLATZ" align="center" color="#2c3e50" position="0 3.5 -5" width="8" font="mozillavr"></a-text>
+        <a-text value="Nutze den linken Stick zum Laufen und den rechten Laser zum Klicken!" align="center" color="#34495e" position="0 2.8 -5" width="4"></a-text>
+
+        <a-box class="klickbar" klick-reaktion position="-2.5 0.5 -4" color="#ff7675" depth="1" width="1" height="1" shadow>
+            <a-text value="Klicke!" align="center" color="#fff" position="0 0 0.51" width="3"></a-text>
+        </a-box>
+        <a-box class="klickbar" klick-reaktion position="0 0.5 -5" color="#74b9ff" depth="1" width="1" height="1" shadow>
+            <a-text value="Klicke!" align="center" color="#fff" position="0 0 0.51" width="3"></a-text>
+        </a-box>
+        <a-box class="klickbar" klick-reaktion position="2.5 0.5 -4" color="#55efc4" depth="1" width="1" height="1" shadow>
+            <a-text value="Klicke!" align="center" color="#fff" position="0 0 0.51" width="3"></a-text>
+        </a-box>
+
+        <a-cylinder position="-4 4 -15" radius="0.5" height="8" color="#ffeaa7" shadow></a-cylinder>
+        <a-cylinder position="4 4 -15" radius="0.5" height="8" color="#ffeaa7" shadow></a-cylinder>
+        <a-box position="0 8 -15" width="9" height="1" depth="1" color="#ffeaa7" shadow></a-box>
+        <a-text value="DAS ANFANGSTOR" align="center" color="#d35400" position="0 9 -14.9" width="10"></a-text>
+
+        <a-cone position="-8 2 -10" radius-bottom="1" radius-top="0" height="4" color="#a29bfe" shadow></a-cone>
+        <a-cone position="8 2 -10" radius-bottom="1" radius-top="0" height="4" color="#fd79a8" shadow></a-cone>
+        
+        <a-box position="-5 5 -8" width="2" height="0.2" depth="2" color="#fab1a0" shadow></a-box>
+        <a-box position="5 6 -12" width="3" height="0.2" depth="3" color="#ffeaa7" shadow></a-box>
+
+
+        <a-entity id="rig" movement-controls="controls: gamepad; speed: 0.25; constrainToNavMesh: false">
             
             <a-entity id="camera" camera look-controls position="0 1.6 0"></a-entity>
 
@@ -55,10 +81,11 @@
 
             <a-entity oculus-touch-controls="hand: right" 
                       laser-controls="hand: right" 
-                      raycaster="objects: .klickbar; far: 20; lineColor: #ef4444; lineOpacity: 0.8;">
+                      raycaster="objects: .klickbar; far: 30; lineColor: #e74c3c; lineOpacity: 0.9;">
             </a-entity>
 
         </a-entity>
+
     </a-scene>
 </body>
 </html>
