@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
 
     <script>
-        // Custom Komponente für die Schrittgeräusche beim Laufen
+        // Custom Komponente für die Schrittgeräusche beim Laufen (funktioniert bei WASD und Sticks)
         AFRAME.registerComponent('schritt-sound', {
             init: function () {
                 this.rig = this.el;
@@ -18,12 +18,10 @@
                 this.lastPosition.copy(this.rig.object3D.position);
             },
             tick: function () {
-                // Prüfen, ob der Spieler sich bewegt
                 let currentPosition = this.rig.object3D.position;
                 let dist = currentPosition.distanceTo(this.lastPosition);
 
-                // Wenn sich die Position ändert, spielen wir den Sound geloopt ab
-                if (dist > 0.01) {
+                if (dist > 0.005) { // Empfindlichkeit leicht erhöht für flüssigere Erkennung bei WASD
                     if (!this.playing) {
                         this.el.components.sound.playSound();
                         this.playing = true;
@@ -61,12 +59,10 @@
 
         <a-cylinder position="0 0.4 0" radius="6.6" height="0.8" color="#7a6a53" material="side: double" open-ended="true" shadow></a-cylinder>
 
-
         <a-text value="OBSERVATION DECK" align="center" color="#ffffff" position="0 2.5 -4" width="5" font="mozillavr"></a-text>
 
-
         <a-entity id="rig" 
-                  movement-controls="controls: gamepad; speed: 0.15; constrainToNavMesh: true"
+                  movement-controls="controls: gamepad, keyboard; speed: 0.15; constrainToNavMesh: true"
                   sound="src: #schritt; loop: true; volume: 0.5"
                   schritt-sound>
             
