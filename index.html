@@ -2,9 +2,10 @@
 <html lang="de">
 <head>
     <meta charset="utf-8">
-    <title>Gröben Plattform - Sound Fix</title>
+    <title>Gröben Plattform - Mit 3D-Modell</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.2/dist/aframe-physics-system.min.js"></script>
 
     <script>
         AFRAME.registerComponent('segment-erzeuger', {
@@ -19,6 +20,8 @@
                     segment.setAttribute('width', '1.1');
                     segment.setAttribute('height', '0.8');
                     segment.setAttribute('depth', '0.1');
+                    // Physik: Brüstung als statisches Hindernis
+                    segment.setAttribute('static-body', '');
                     segment.setAttribute('material', 'color: #ffffff; transparent: true; opacity: 0.6');
                     this.el.appendChild(segment);
                 }
@@ -28,21 +31,23 @@
 </head>
 
 <body>
-    <a-scene cursor="rayOrigin: mouse" raycaster="objects: .clickable">
+    <a-scene physics="debug: false" cursor="rayOrigin: mouse" raycaster="objects: .clickable">
         <a-assets>
             <img id="himmel" src="360.jpg">
             <img id="logo" src="logo.jpg">
             <video id="vid" src="Testvideo.mp4" loop="true" crossorigin="anonymous" playsinline muted></video>
-            <audio id="audio-file" src="Testvideo.mp4" crossorigin="anonymous"></audio>
+            <audio id="audio-file" src="audio.mp3" crossorigin="anonymous"></audio>
+            <a-asset-item id="mein-modell" src="modell.glb"></a-asset-item>
         </a-assets>
 
         <a-sky src="#himmel"></a-sky>
 
-        <a-cylinder position="0 0 0" radius="3.0" height="0.1" color="#333333"></a-cylinder>
+        <a-cylinder position="0 0 0" radius="3.0" height="0.1" color="#333333" static-body></a-cylinder>
         <a-entity segment-erzeuger></a-entity>
         
-        <a-image src="#logo" position="0 3.5 -2.5" width="2.4" height="0.8"></a-image>
+        <a-entity gltf-model="#mein-modell" position="0 0 0" scale="1 1 1" static-body></a-entity>
         
+        <a-image src="#logo" position="0 3.5 -2.5" width="2.4" height="0.8"></a-image>
         <a-video id="screen" src="#vid" position="0 1.8 -1.5" width="2.4" height="1.35"></a-video>
 
         <a-entity id="sound-emitter" position="0 1.8 -1.5" 
@@ -51,14 +56,14 @@
 
         <a-entity position="0 0.8 -1.5">
             <a-box class="clickable" id="play-btn" position="-0.4 0 0" width="0.5" height="0.3" depth="0.1" color="#555"></a-box>
-            <a-text value="PLAY" position="-0.4 0 0.06" align="center" scale="0.4 0.4 0.4" pickable="false"></a-text>
+            <a-text value="PLAY" align="center" position="-0.4 0 0.06" scale="0.4 0.4 0.4"></a-text>
             
             <a-box class="clickable" id="stop-btn" position="0.4 0 0" width="0.5" height="0.3" depth="0.1" color="#555"></a-box>
-            <a-text value="STOP" position="0.4 0 0.06" align="center" scale="0.4 0.4 0.4" pickable="false"></a-text>
+            <a-text value="STOP" align="center" position="0.4 0 0.06" scale="0.4 0.4 0.4"></a-text>
         </a-entity>
 
-        <a-entity id="rig" movement-controls="controls: keyboard, gamepad; speed: 0.15">
-            <a-entity camera look-controls position="0 1.6 0"></a-entity>
+        <a-entity id="rig" movement-controls="controls: keyboard, gamepad; speed: 0.15" position="0 0 0">
+            <a-entity camera look-controls position="0 1.6 0" kinematic-body></a-entity>
             <a-entity laser-controls="hand: right" raycaster="objects: .clickable; showLine: true"></a-entity>
             <a-entity laser-controls="hand: left" raycaster="objects: .clickable; showLine: true"></a-entity>
         </a-entity>
@@ -70,7 +75,6 @@
 
         document.querySelector('#play-btn').addEventListener('click', () => {
             video.play();
-            // Startet die Web-Audio-API Komponente
             soundEmitter.components.sound.playSound();
         });
         
