@@ -1,69 +1,184 @@
 <!DOCTYPE html>
 <html lang="de">
-<head>
+  <head>
     <meta charset="utf-8">
-    <title>Gröben Plattform - Master Build</title>
-    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.2/dist/aframe-physics-system.min.js"></script>
-</head>
-
-<body>
-    <a-scene physics="gravity: 0" cursor="rayOrigin: mouse" raycaster="objects: .clickable">
-        
-        <a-assets>
-            <img id="himmel" src="360.jpg">
-            <img id="logo" src="logo.jpg">
-            <video id="vid" src="Testvideo.mp4" loop="true" crossorigin="anonymous" playsinline muted></video>
-            <audio id="audio-file" src="audio.mp3" crossorigin="anonymous"></audio>
-            <a-asset-item id="mein-modell" src="modell.glb"></a-asset-item>
-        </a-assets>
-
-        <a-sky src="#himmel"></a-sky>
-
-        <a-cylinder position="0 0 0" radius="3.0" height="0.1" color="#333333" static-body></a-cylinder>
-
-        <a-entity id="glas-bruestung">
-            <a-box position="2.9 0.6 0" rotation="0 90 0" width="1.2" height="1.4" depth="0.1" static-body material="color: #ffffff; transparent: true; opacity: 0.3"></a-box>
-            <a-box position="-2.9 0.6 0" rotation="0 90 0" width="1.2" height="1.4" depth="0.1" static-body material="color: #ffffff; transparent: true; opacity: 0.3"></a-box>
-            <a-box position="0 0.6 2.9" rotation="0 0 0" width="1.2" height="1.4" depth="0.1" static-body material="color: #ffffff; transparent: true; opacity: 0.3"></a-box>
-            <a-box position="0 0.6 -2.9" rotation="0 0 0" width="1.2" height="1.4" depth="0.1" static-body material="color: #ffffff; transparent: true; opacity: 0.3"></a-box>
-        </a-entity>
-        
-        <a-entity gltf-model="#mein-modell" position="0 0 0" scale="1 1 1" static-body="shape: hull"></a-entity>
-        
-        <a-video id="screen" src="#vid" position="0 1.8 -1.5" width="2.4" height="1.35">
-            <a-entity sound="src: #audio-file; positional: true; refDistance: 1; rolloffFactor: 1.5; volume: 2"></a-entity>
-        </a-video>
-        
-        <a-image src="#logo" position="0 3.5 -2.5" width="2.4" height="0.8"></a-image>
-
-        <a-entity id="rig" movement-controls="speed: 0.15" position="0 0 0">
-            <a-entity camera look-controls position="0 1.6 0" kinematic-body="radius: 0.5"></a-entity>
-            <a-entity laser-controls="hand: right" raycaster="objects: .clickable; showLine: true"></a-entity>
-            <a-entity laser-controls="hand: left" raycaster="objects: .clickable; showLine: true"></a-entity>
-        </a-entity>
-
-        <a-entity position="0 0.8 -1.5">
-            <a-box class="clickable" id="play-btn" position="-0.4 0 0" width="0.5" height="0.3" color="#00ff00"></a-box>
-            <a-box class="clickable" id="stop-btn" position="0.4 0 0" width="0.5" height="0.3" color="#ff0000"></a-box>
-        </a-entity>
-    </a-scene>
-
+    <title>VR Triple Platform - Spatial Audio & Video Controls</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
+    
     <script>
-        const video = document.querySelector('#vid');
-        const soundEl = document.querySelector('#screen [sound]');
-        
-        document.querySelector('#play-btn').addEventListener('click', () => {
-            video.play();
-            soundEl.components.sound.playSound(); // Spielt räumlichen Sound
-        });
-        
-        document.querySelector('#stop-btn').addEventListener('click', () => { 
-            video.pause(); 
-            video.currentTime = 0; 
-            soundEl.components.sound.stopSound();
-        });
+      // 1. Hover-Feedback für die Menü-Kacheln
+      AFRAME.registerComponent('kachel-feedback', {
+        init: function () {
+          let el = this.el;
+          let originalPos = el.getAttribute('position');
+          
+          el.addEventListener('mouseenter', function () {
+            el.setAttribute('animation__hover', {
+              property: 'position',
+              to: `${originalPos.x} ${originalPos.y + 0.1} ${originalPos.z}`,
+              dur: 150,
+              easing: 'easeOutQuad'
+            });
+            el.setAttribute('material', 'color', '#ffffff');
+          });
+          
+          el.addEventListener('mouseleave', function () {
+            el.setAttribute('animation__hover', {
+              property: 'position',
+              to: `${originalPos.x} ${originalPos.y} ${originalPos.z}`,
+              dur: 150,
+              easing: 'easeOutQuad'
+            });
+            el.setAttribute('material', 'color', el.getAttribute('data-basecolor'));
+          });
+        }
+      });
+
+      // 2. Teleport-Logik mit flüssigem Fade-Out / Fade-In
+      AFRAME.registerComponent('teleport-to', {
+        schema: { x: {type: 'number'}, z: {type: 'number'} },
+        init: function () {
+          let el = this.el;
+          let data = this.data;
+          let fadePlane = document.querySelector('#fadeOverlay');
+          let rig = document.querySelector('#rig');
+
+          el.addEventListener('click', function () {
+            fadePlane.emit('fadeOut');
+            setTimeout(() => {
+              rig.setAttribute('position', {x: data.x, y: 0, z: data.z});
+              fadePlane.emit('fadeIn');
+            }, 500);
+          });
+        }
+      });
+
+      // 3. Eigene Video-Steuerung (Play/Pause per Klick auf den Schalter)
+      AFRAME.registerComponent('video-controller', {
+        schema: { videoId: {type: 'string'} },
+        init: function () {
+          let el = this.el;
+          let video = document.querySelector(this.data.videoId);
+          
+          el.addEventListener('click', function () {
+            if (video.paused) {
+              video.play();
+              el.setAttribute('color', '#10b981'); // Grün wenn es läuft
+            } else {
+              video.pause();
+              el.setAttribute('color', '#ef4444'); // Rot wenn Pause
+            }
+          });
+        }
+      });
     </script>
-</body>
+  </head>
+  <body>
+
+    <a-scene xr-mode-ui="XRMode: xr" cursor="rayOrigin: mouse">
+      
+      <a-assets>
+        <audio id="ambientWind" src="wind.mp3" preload="auto"></audio>
+        
+        <video id="videoA" src="https://vjs.zencdn.net/v/oceans.mp4" loop="true" crossorigin="anonymous" playsinline></video>
+        <video id="videoB" src="https://vjs.zencdn.net/v/oceans.mp4" loop="true" crossorigin="anonymous" playsinline></video>
+        <video id="videoC" src="https://vjs.zencdn.net/v/oceans.mp4" loop="true" crossorigin="anonymous" playsinline></video>
+      </a-assets>
+
+      <a-sky color="#0a0f1d"></a-sky>
+      <a-entity sound="src: #ambientWind; autoplay: true; loop: true; volume: 0.3"></a-entity>
+      <a-ambient-light type="ambient" color="#444"></a-ambient-light>
+      <a-entity light="type: directional; intensity: 0.6;" position="2 6 4"></a-entity>
+
+
+      <a-entity position="0 0 0">
+        <a-plane rotation="-90 0 0" width="12" height="12" color="#1e293b"></a-plane>
+        <a-grid size="12" bounds="6 6"></a-grid>
+        <a-text value="STATION A" position="0 3.5 -5.8" align="center" color="#fff" width="6"></a-text>
+
+        <a-box position="0 2 -5.8" width="5" height="2.8" depth="0.1" color="#111827"
+               sound="src: #videoA; autoplay: false; loop: true; positional: true; distanceModel: linear; maxDistance: 30; refDistance: 3;">
+          <a-video src="#videoA" position="0 0 0.06" width="4.8" height="2.6"></a-video>
+        </a-box>
+        
+        <a-box class="klickbar" video-controller="videoId: #videoA" position="0 0.4 -5.5" width="0.4" height="0.2" depth="0.2" color="#ef4444"></a-box>
+        <a-text value="PLAY/PAUSE" position="0 0.7 -5.5" align="center" width="3" color="#fff"></a-text>
+
+        <a-entity position="-4 0 -4.5"><a-cylinder color="#a1a1aa" radius="0.3" height="0.6"></a-cylinder><a-sphere color="#15803d" radius="0.5" position="0 0.7 0"></a-sphere></a-entity>
+        <a-box position="0 0.3 4" width="3" height="0.6" depth="1" color="#3f3f46"></a-box>
+
+        <a-entity position="0 0.01 1.5">
+          <a-box color="#4b5563" position="-1.5 0 0" width="1" height="0.05" depth="0.6"></a-box>
+          <a-box class="klickbar" kachel-feedback teleport-to="x: 50; z: 0" data-basecolor="#3b82f6" color="#3b82f6" position="0 0 0" width="1" height="0.05" depth="0.6"></a-box>
+          <a-box class="klickbar" kachel-feedback teleport-to="x: 100; z: 0" data-basecolor="#10b981" color="#10b981" position="1.5 0 0" width="1" height="0.05" depth="0.6"></a-box>
+        </a-entity>
+      </a-entity>
+
+
+      <a-entity position="50 0 0">
+        <a-plane rotation="-90 0 0" width="12" height="12" color="#1e293b"></a-plane>
+        <a-grid size="12" bounds="6 6"></a-grid>
+        <a-text value="STATION B" position="0 3.5 -5.8" align="center" color="#fff" width="6"></a-text>
+
+        <a-box position="0 2 -5.8" width="5" height="2.8" depth="0.1" color="#111827"
+               sound="src: #videoB; autoplay: false; loop: true; positional: true; distanceModel: linear; maxDistance: 30; refDistance: 3;">
+          <a-video src="#videoB" position="0 0 0.06" width="4.8" height="2.6"></a-video>
+        </a-box>
+        
+        <a-box class="klickbar" video-controller="videoId: #videoB" position="0 0.4 -5.5" width="0.4" height="0.2" depth="0.2" color="#ef4444"></a-box>
+        <a-text value="PLAY/PAUSE" position="0 0.7 -5.5" align="center" width="3" color="#fff"></a-text>
+
+        <a-entity position="-4 0 -4.5"><a-cylinder color="#a1a1aa" radius="0.3" height="0.6"></a-cylinder><a-sphere color="#15803d" radius="0.5" position="0 0.7 0"></a-sphere></a-entity>
+        <a-box position="0 0.3 4" width="3" height="0.6" depth="1" color="#3f3f46"></a-box>
+
+        <a-entity position="0 0.01 1.5">
+          <a-box class="klickbar" kachel-feedback teleport-to="x: 0; z: 0" data-basecolor="#ef4444" color="#ef4444" position="-1.5 0 0" width="1" height="0.05" depth="0.6"></a-box>
+          <a-box color="#4b5563" position="0 0 0" width="1" height="0.05" depth="0.6"></a-box>
+          <a-box class="klickbar" kachel-feedback teleport-to="x: 100; z: 0" data-basecolor="#10b981" color="#10b981" position="1.5 0 0" width="1" height="0.05" depth="0.6"></a-box>
+        </a-entity>
+      </a-entity>
+
+
+      <a-entity position="100 0 0">
+        <a-plane rotation="-90 0 0" width="12" height="12" color="#1e293b"></a-plane>
+        <a-grid size="12" bounds="6 6"></a-grid>
+        <a-text value="STATION C" position="0 3.5 -5.8" align="center" color="#fff" width="6"></a-text>
+
+        <a-box position="0 2 -5.8" width="5" height="2.8" depth="0.1" color="#111827"
+               sound="src: #videoC; autoplay: false; loop: true; positional: true; distanceModel: linear; maxDistance: 30; refDistance: 3;">
+          <a-video src="#videoC" position="0 0 0.06" width="4.8" height="2.6"></a-video>
+        </a-box>
+        
+        <a-box class="klickbar" video-controller="videoId: #videoC" position="0 0.4 -5.5" width="0.4" height="0.2" depth="0.2" color="#ef4444"></a-box>
+        <a-text value="PLAY/PAUSE" position="0 0.7 -5.5" align="center" width="3" color="#fff"></a-text>
+
+        <a-entity position="-4 0 -4.5"><a-cylinder color="#a1a1aa" radius="0.3" height="0.6"></a-cylinder><a-sphere color="#15803d" radius="0.5" position="0 0.7 0"></a-sphere></a-entity>
+        <a-box position="0 0.3 4" width="3" height="0.6" depth="1" color="#3f3f46"></a-box>
+
+        <a-entity position="0 0.01 1.5">
+          <a-box class="klickbar" kachel-feedback teleport-to="x: 0; z: 0" data-basecolor="#ef4444" color="#ef4444" position="-1.5 0 0" width="1" height="0.05" depth="0.6"></a-box>
+          <a-box class="klickbar" kachel-feedback teleport-to="x: 50; z: 0" data-basecolor="#3b82f6" color="#3b82f6" position="0 0 0" width="1" height="0.05" depth="0.6"></a-box>
+          <a-box color="#4b5563" position="1.5 0 0" width="1" height="0.05" depth="0.6"></a-box>
+        </a-entity>
+      </a-entity>
+
+
+      <a-entity id="rig" position="0 0 0" movement-controls="controls: oculus-touch-controls; speed: 0.2">
+        <a-entity id="camera" camera look-controls position="0 1.6 0">
+           <a-plane id="fadeOverlay" position="0 0 -0.05" width="1" height="1"
+                    material="color: #000000; transparent: true; opacity: 0; shader: flat"
+                    animation__fadeOut="property: material.opacity; from: 0; to: 1; dur: 350; startEvents: fadeOut"
+                    animation__fadeIn="property: material.opacity; from: 1; to: 0; dur: 350; startEvents: fadeIn">
+           </a-plane>
+        </a-entity>
+        
+        <a-entity oculus-touch-controls="hand: left"></a-entity>
+        <a-entity oculus-touch-controls="hand: right" laser-controls="hand: right"
+                  raycaster="objects: .klickbar; far: 15; lineColor: #3b82f6">
+        </a-entity>
+      </a-entity>
+
+    </a-scene>
+  </body>
 </html>
