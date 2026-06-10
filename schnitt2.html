@@ -12,6 +12,17 @@
         var video = document.querySelector('#vr-video');
         var playBtn = document.querySelector('#play-button');
         var pauseBtn = document.querySelector('#pause-button');
+        var startOverlay = document.querySelector('#start-overlay');
+
+        // WICHTIG: Erster Klick schaltet das Video für den Browser frei
+        window.addEventListener('click', function() {
+          if (video.paused) {
+            // Einmal kurz anspielen und pausieren, damit der Browser den Blackscreen wegnimmt
+            video.play().then(() => {
+              video.pause();
+            }).catch(e => console.log("Video-Start verzögert: ", e));
+          }
+        });
 
         playBtn.addEventListener('click', function () {
           video.play();
@@ -23,25 +34,19 @@
       }
     });
 
-    // Komponente für den Zoom per Joystick/Touchpad (Achsen-Eingabe)
+    // Komponente für den Zoom per Joystick/Touchpad
     AFRAME.registerComponent('controller-zoom', {
       init: function () {
         this.videoScreen = document.querySelector('#video-screen');
         this.scaleFactor = 1.0;
 
-        // Event-Listener für Achsenbewegung (Joystick/Touchpad)
         this.el.addEventListener('axismove', (evt) => {
-          // evt.detail.axis[1] ist meistens die Y-Achse des Joysticks (hoch/runter)
-          var joystickY = evt.detail.axis[1];
+          var joystickY = evt.detail.axis[1]; // Y-Achse des Joysticks
           
-          if (Math.abs(joystickY) > 0.2) { // Deadzone, um Zittern zu vermeiden
-            // Joystick nach oben -> Vergrößern, nach unten -> Verkleinern
+          if (Math.abs(joystickY) > 0.2) { 
             this.scaleFactor -= joystickY * 0.02; 
-            
-            // Grenzen für den Zoom setzen (nicht unendlich klein oder riesig)
             this.scaleFactor = Math.max(0.5, Math.min(this.scaleFactor, 4.0));
             
-            // Neue Skalierung auf das Video-Objekt anwenden
             this.videoScreen.setAttribute('scale', {
               x: this.scaleFactor, 
               y: this.scaleFactor, 
@@ -52,17 +57,32 @@
       }
     });
   </script>
+  <style>
+    /* Falls man am PC oder Handy testet, ein kleiner Hinweis */
+    .start-hint {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      color: white;
+      background: rgba(0,0,0,0.7);
+      padding: 10px;
+      font-family: sans-serif;
+      z-index: 999;
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body>
+
+  <div class="start-hint">Bitte einmal auf den Bildschirm klicken, um VR/Video zu aktivieren!</div>
 
   <a-scene video-controls>
     
     <a-assets>
-      <video id="vr-video" src="https://gitty12728.github.io/vrtests/schnitt2.mp4" crossorigin="anonymous" playsinline webkit-playsinline></video>
+      <video id="vr-video" src="https://gitty12728.github.io/vrtests/schnitt2.mp4" crossorigin="anonymous" playsinline webkit-playsinline muted autocomplete="none"></video>
     </a-assets>
 
-    <a-sky color="#1a1a1a"></a-sky>
-    <a-grid></a-grid>
+    <a-sky color="#2c3e50"></a-sky>
 
     <a-entity id="rig" position="0 1.6 0">
       <a-camera></a-camera>
@@ -89,6 +109,9 @@
     </a-entity>
 
   </a-scene>
+
+</body>
+</html>
 
 </body>
 </html>
