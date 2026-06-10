@@ -2,50 +2,66 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Echter VR180 SBS 3D Player</title>
+  <title>Meta Quest 2 - Echter VR180 Player</title>
   
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/bellona/aframe-webxr-stereo-component@master/dist/aframe-webxr-stereo-component.min.js"></script>
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 
   <script>
-    // Play / Pause Steuerung
-    AFRAME.registerComponent('video-controls', {
+    // EIGENE PROFI-STEREO-TRENNUNG FÜR QUEST 2
+    // Teilt das Side-by-Side Video exakt in der Mitte und legt es auf die VR-Displays
+    AFRAME.registerComponent('quest-stereo', {
+      schema: { eye: { default: 'left' } },
       init: function () {
-        var video = document.querySelector('#vr-video');
-        var playBtn = document.querySelector('#play-button');
-        var pauseBtn = document.querySelector('#pause-button');
-        var unlockBarrier = document.querySelector('#unlock-barrier');
+        var el = this.el;
+        var eye = this.data.eye;
 
-        window.addEventListener('click', function unlock() {
-          video.play().then(() => {
-            unlockBarrier.setAttribute('visible', 'false');
-            unlockBarrier.setAttribute('class', 'not-clickable');
-            video.pause();
-            window.removeEventListener('click', unlock);
-          }).catch(e => console.error(e));
-        });
+        el.addEventListener('object3dset', function () {
+          var mesh = el.getObject3D('mesh');
+          if (!mesh) return;
 
-        playBtn.addEventListener('click', function () {
-          if (!unlockBarrier.getAttribute('visible')) video.play();
-        });
+          // Layer 1 = Linkes Display der Quest, Layer 2 = Rechtes Display
+          mesh.layers.set(eye === 'left' ? 1 : 2);
 
-        pauseBtn.addEventListener('click', function () {
-          if (!unlockBarrier.getAttribute('visible')) video.pause();
+          // Video-Textur in der Mitte teilen (Side-by-Side)
+          if (mesh.material && mesh.material.map) {
+            var texture = mesh.material.map;
+            texture.repeat.set(0.5, 1); // Nur 50% der Breite nutzen
+            if (eye === 'right') {
+              texture.offset.set(0.5, 0); // Rechte Hälfte für das rechte Auge
+            }
+          }
         });
       }
     });
 
-    // Zoom-Komponente (schiebt die Kugel vor/zurück)
-    AFRAME.registerComponent('deovr-zoom', {
+    // KOMBINIERTE STEUERUNG (Unlock, Play/Pause, DeoVR-Zoom)
+    AFRAME.registerComponent('player-core', {
       init: function () {
+        var video = document.querySelector('#vr-video');
+        var playBtn = document.querySelector('#play-button');
+        var pauseBtn = document.querySelector('#pause-button');
+        var barrier = document.querySelector('#vr-start-barrier');
         this.videoContainer = document.querySelector('#video-container');
         this.currentZ = 0.0;
 
+        // VR-Unlock: Erst in VR einmal triggern schaltet das Video sauber frei
+        window.addEventListener('click', function unlock() {
+          video.play().then(() => {
+            barrier.setAttribute('visible', 'false');
+            barrier.setAttribute('class', 'not-clickable');
+            window.removeEventListener('click', unlock);
+          }).catch(e => console.log("Unlock wartet...", e));
+        });
+
+        playBtn.addEventListener('click', function () { video.play(); });
+        pauseBtn.addEventListener('click', function () { video.pause(); });
+
+        // DeoVR-Zoom via Joystick (Verschiebt die Halbkugel vor/zurück)
         this.el.addEventListener('axismove', (evt) => {
           var joystickY = evt.detail.axis[1]; 
           if (Math.abs(joystickY) > 0.2) {
             this.currentZ += joystickY * 0.1; 
-            this.currentZ = Math.min(2.0, Math.max(this.currentZ, -5.0));
+            this.currentZ = Math.min(3.0, Math.max(this.currentZ, -6.0));
             this.videoContainer.setAttribute('position', { x: 0, y: 0, z: this.currentZ });
           }
         });
@@ -55,7 +71,7 @@
 </head>
 <body>
 
-  <a-scene video-controls xrwebvr="stereo: true">
+  <a-scene player-core antialias="true">
     
     <a-assets>
       <video id="vr-video" src="https://gitty12728.github.io/vrtests/schnitt2.mp4" crossorigin="anonymous" playsinline webkit-playsinline></video>
@@ -63,44 +79,44 @@
 
     <a-entity id="rig" position="0 0 0">
       <a-camera></a-camera>
-      <a-entity laser-controls="hand: left" deovr-zoom></a-entity>
-      <a-entity laser-controls="hand: right" deovr-zoom></a-entity>
+      <a-entity laser-controls="hand: left" raycaster="objects: .clickable"></a-entity>
+      <a-entity laser-controls="hand: right" raycaster="objects: .clickable"></a-entity>
     </a-entity>
 
     <a-sky color="#000"></a-sky>
 
-    <a-plane id="unlock-barrier" class="clickable" position="0 1.6 -1" width="4" height="3" color="#222" opacity="0.8">
-      <a-text value="KLICKE IN VR IRGENDWOHIN\nZUM STARTEN" align="center" width="6" color="#FFF"></a-text>
+    <a-plane id="vr-start-barrier" class="clickable" position="0 1.5 -1.5" width="2" height="1" color="#222" opacity="0.9">
+      <a-text value="IN VR WECHSELN\nDANACH HIERHIN KLICKEN" align="center" width="4" color="#FFF"></a-text>
     </a-plane>
 
     <a-entity id="video-container" position="0 0 0">
       
       <a-videosphere 
         src="#vr-video"
-        radius="10"
+        radius="12"
         phi-length="180"
         rotation="0 -90 0"
         scale="-1 1 1"
-        webxr-stereo="eye: left; split: horizontal">
+        quest-stereo="eye: left">
       </a-videosphere>
 
       <a-videosphere 
         src="#vr-video"
-        radius="10"
+        radius="12"
         phi-length="180"
         rotation="0 -90 0"
         scale="-1 1 1"
-        webxr-stereo="eye: right; split: horizontal">
+        quest-stereo="eye: right">
       </a-videosphere>
       
     </a-entity>
 
-    <a-entity id="ui-menu" position="0 -0.8 -1.2" rotation="-30 0 0">
-      <a-plane color="#111" width="0.8" height="0.3" opacity="0.9">
-        <a-plane id="play-button" class="clickable" color="#118811" width="0.3" height="0.15" position="-0.18 0 0.01">
+    <a-entity id="ui-menu" position="0 -0.7 -1.2" rotation="-30 0 0">
+      <a-plane color="#111" width="0.7" height="0.25" opacity="0.9">
+        <a-plane id="play-button" class="clickable" color="#118811" width="0.25" height="0.12" position="-0.16 0 0.01">
           <a-text value="PLAY" align="center" width="2" color="#FFF"></a-text>
         </a-plane>
-        <a-plane id="pause-button" class="clickable" color="#CC2222" width="0.3" height="0.15" position="0.18 0 0.01">
+        <a-plane id="pause-button" class="clickable" color="#CC2222" width="0.25" height="0.12" position="0.16 0 0.01">
           <a-text value="PAUSE" align="center" width="2" color="#FFF"></a-text>
         </a-plane>
       </a-plane>
@@ -108,5 +124,7 @@
 
   </a-scene>
 
+</body>
+</html>
 </body>
 </html>
