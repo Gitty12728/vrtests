@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <title>VR180 Industriestandard Player</title>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/orionshadow/aframe-stereo-component@master/dist/aframe-stereo-component.min.js"></script>
 </head>
@@ -17,12 +15,14 @@
       <a-entity laser-controls="hand: right" raycaster="objects: .clickable"></a-entity>
     </a-entity>
 
-    <a-videosphere 
+    <a-curvedimage 
       src="#vr-video" 
-      rotation="0 -90 0" 
-      phi-length="180" 
+      radius="5.7" 
+      theta-length="180" 
+      rotation="0 90 0"
+      height="6.4"
       stereo="mode: side-by-side">
-    </a-videosphere>
+    </a-curvedimage>
 
     <a-entity position="0 1.2 -1.5" id="ui-menu">
       <a-box id="play-btn" class="clickable" color="green" width="0.3" height="0.15" depth="0.05" position="-0.2 0 0">
@@ -35,16 +35,8 @@
 
     <script>
       const video = document.querySelector('#vr-video');
-      const scene = document.querySelector('a-scene');
-
-      // Video-Steuerung
       document.querySelector('#play-btn').addEventListener('click', () => video.play());
       document.querySelector('#pause-btn').addEventListener('click', () => video.pause());
-
-      // Autoplay-Sicherung bei Eintritt in VR
-      scene.addEventListener('enter-vr', () => {
-        video.play().catch(e => console.log("Benutzerinteraktion für Autoplay erforderlich"));
-      });
     </script>
   </a-scene>
 </body>
