@@ -2,116 +2,107 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>VR Video Player mit Zoom</title>
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <title>VR180 3D Stereoskopischer Dome Player</title>
   
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/aframe-stereo-component@0.5.1/dist/aframe-stereo-component.min.js"></script>
+
   <script>
-    // Komponente für das Play/Pause User Interface via Laser-Pointer
+    // Play / Pause Steuerung via Laser-Pointer
     AFRAME.registerComponent('video-controls', {
       init: function () {
         var video = document.querySelector('#vr-video');
         var playBtn = document.querySelector('#play-button');
         var pauseBtn = document.querySelector('#pause-button');
-        var startOverlay = document.querySelector('#start-overlay');
 
-        // WICHTIG: Erster Klick schaltet das Video für den Browser frei
+        // Erster Klick schaltet Audio/Video im VR-Browser frei
         window.addEventListener('click', function() {
           if (video.paused) {
-            // Einmal kurz anspielen und pausieren, damit der Browser den Blackscreen wegnimmt
-            video.play().then(() => {
-              video.pause();
-            }).catch(e => console.log("Video-Start verzögert: ", e));
+            video.play().then(() => { video.pause(); }).catch(e => console.log(e));
           }
         });
 
-        playBtn.addEventListener('click', function () {
-          video.play();
-        });
-
-        pauseBtn.addEventListener('click', function () {
-          video.pause();
-        });
+        playBtn.addEventListener('click', function () { video.play(); });
+        pauseBtn.addEventListener('click', function () { video.pause(); });
       }
     });
 
-    // Komponente für den Zoom per Joystick/Touchpad
+    // Zoom-Komponente über den Joystick (skaliert die Videokuppel)
     AFRAME.registerComponent('controller-zoom', {
       init: function () {
-        this.videoScreen = document.querySelector('#video-screen');
+        this.domes = document.querySelectorAll('.vr180-dome');
         this.scaleFactor = 1.0;
 
         this.el.addEventListener('axismove', (evt) => {
-          var joystickY = evt.detail.axis[1]; // Y-Achse des Joysticks
-          
-          if (Math.abs(joystickY) > 0.2) { 
-            this.scaleFactor -= joystickY * 0.02; 
-            this.scaleFactor = Math.max(0.5, Math.min(this.scaleFactor, 4.0));
+          var joystickY = evt.detail.axis[1]; // Y-Achse (hoch/runter)
+          if (Math.abs(joystickY) > 0.2) {
+            this.scaleFactor -= joystickY * 0.03;
+            this.scaleFactor = Math.max(0.5, Math.min(this.scaleFactor, 5.0)); // Grenzen
             
-            this.videoScreen.setAttribute('scale', {
-              x: this.scaleFactor, 
-              y: this.scaleFactor, 
-              z: 1
+            this.domes.forEach(dome => {
+              dome.setAttribute('scale', {
+                x: this.scaleFactor, 
+                y: this.scaleFactor, 
+                z: this.scaleFactor
+              });
             });
           }
         });
       }
     });
   </script>
-  <style>
-    /* Falls man am PC oder Handy testet, ein kleiner Hinweis */
-    .start-hint {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      color: white;
-      background: rgba(0,0,0,0.7);
-      padding: 10px;
-      font-family: sans-serif;
-      z-index: 999;
-      pointer-events: none;
-    }
-  </style>
 </head>
 <body>
-
-  <div class="start-hint">Bitte einmal auf den Bildschirm klicken, um VR/Video zu aktivieren!</div>
 
   <a-scene video-controls>
     
     <a-assets>
-      <video id="vr-video" src="https://gitty12728.github.io/vrtests/schnitt2.mp4" crossorigin="anonymous" playsinline webkit-playsinline muted autocomplete="none"></video>
+      <video id="vr-video" src="https://gitty12728.github.io/vrtests/schnitt2.mp4" crossorigin="anonymous" playsinline webkit-playsinline></video>
     </a-assets>
 
-    <a-sky color="#2c3e50"></a-sky>
-
-    <a-entity id="rig" position="0 1.6 0">
-      <a-camera></a-camera>
+    <a-entity id="rig" position="0 0 0">
+      <a-camera stereocam="eye: left; mode: half"></a-camera>
       
       <a-entity laser-controls="hand: left" raycaster="objects: .clickable" controller-zoom></a-entity>
       <a-entity laser-controls="hand: right" raycaster="objects: .clickable" controller-zoom></a-entity>
     </a-entity>
 
-    <a-entity id="video-screen" position="0 0.8 -2" rotation="-20 0 0">
+    <a-videosphere 
+      class="vr180-dome"
+      src="#vr-video" 
+      radius="10" 
+      segments-height="64" 
+      segments-width="64"
+      phi-length="180" 
+      rotation="0 -90 0"
+      stereo="eye: left; mode: half">
+    </a-videosphere>
+
+    <a-videosphere 
+      class="vr180-dome"
+      src="#vr-video" 
+      radius="10" 
+      segments-height="64" 
+      segments-width="64"
+      phi-length="180" 
+      rotation="0 -90 0"
+      stereo="eye: right; mode: half">
+    </a-videosphere>
+    <a-entity id="ui-menu" position="0 0.8 -1.2" rotation="-25 0 0">
       
-      <a-video src="#vr-video" width="2" height="1.125"></a-video>
+      <a-plane color="#111" width="1.0" height="0.4" opacity="0.8"></a-plane>
 
-      <a-entity position="0 -0.8 0">
-        
-        <a-plane id="play-button" class="clickable" color="#118811" width="0.4" height="0.2" position="-0.25 0 0.01">
-          <a-text value="PLAY" align="center" width="2" color="#FFF"></a-text>
-        </a-plane>
+      <a-plane id="play-button" class="clickable" color="#118811" width="0.35" height="0.18" position="-0.22 0 0.01">
+        <a-text value="PLAY" align="center" width="2.5" color="#FFF"></a-text>
+      </a-plane>
 
-        <a-plane id="pause-button" class="clickable" color="#CC2222" width="0.4" height="0.2" position="0.25 0 0.01">
-          <a-text value="PAUSE" align="center" width="2" color="#FFF"></a-text>
-        </a-plane>
-        
-      </a-entity>
+      <a-plane id="pause-button" class="clickable" color="#CC2222" width="0.35" height="0.18" position="0.22 0 0.01">
+        <a-text value="PAUSE" align="center" width="2.5" color="#FFF"></a-text>
+      </a-plane>
+      
     </a-entity>
 
   </a-scene>
-
-</body>
-</html>
 
 </body>
 </html>
