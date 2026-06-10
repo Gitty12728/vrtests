@@ -2,57 +2,65 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Meta Quest 2 - VR180 Stereo Fix</title>
+  <title>Quest 2 - VR180 Professional Stereo Player</title>
   
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 
   <script>
-    // FIX FÜR AUGENTRENNUNG & ROTATION
-    AFRAME.registerComponent('quest-stereo-control', {
-      init: function () {
-        this.leftDome = document.querySelector('#left-dome');
-        this.rightDome = document.querySelector('#right-dome');
+    // INDUSTRIE-STANDARD VR180 SBS SHADER
+    // Dieser Shader rendert eine einzige Kugel, filtert aber die Pixel live nach Auge (links/rechts)
+    AFRAME.registerShader('vr180-stereo-shader', {
+      schema: {
+        src: { type: 'map', is: 'uniform' }
+      },
+      
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
 
-        // Textur-Split (Side-by-Side) direkt beim Laden zuweisen
-        this.leftDome.addEventListener('object3dset', () => this.initDome(this.leftDome, 'left'));
-        this.rightDome.addEventListener('object3dset', () => this.initDome(this.rightDome, 'right'));
-
-        // RADIKALE AUGENTRENNUNG: Wir schalten die Kuppeln je nach Auge aktiv unsichtbar
-        this.el.sceneEl.renderer.onBeforeRender = (scene, camera) => {
-          if (camera.cameras && camera.cameras.length >= 2) {
-            // camera.cameras[0] = Linkes Auge, camera.cameras[1] = Rechtes Auge
-            var currentCam = camera;
-            
-            // Wenn Three.js die Unter-Kameras durchgeht:
-            if (this.el.sceneEl.renderer.currentRenderState) {
-              // Wir nutzen die native Render-Schleife, um die Sichtbarkeit pro Auge zu erzwingen
-              this.leftDome.object3D.visible = (camera.bounds && camera.bounds.x === 0);
-              this.rightDome.object3D.visible = (camera.bounds && camera.bounds.x > 0);
+      fragmentShader: `
+        varying vec2 vUv;
+        uniform sampler2D src;
+        
+        void main() {
+          vec2 uv = vUv;
+          
+          // WebXR / Three.js gibt uns die Information, welches Auge gerade gerendert wird via gl_ViewID_OVR oder standardmäßig über die Kamera-Projektion
+          // Da wir im Side-by-Side Format arbeiten:
+          // Linkes Auge nutzt x von 0.0 bis 0.5
+          // Rechtes Auge nutzt x von 0.5 bis 1.0
+          
+          #ifdef GL_FRAGMENT_PRECISION_HIGH
+          precision highp float;
+          #else
+          precision mediump float;
+          #endif
+          
+          // Prüfen welches Auge gerendert wird anhand der WebXR Kamera-Konfiguration
+          if (gl_FrontFacing) {
+            // Native Abfrage der Kamera-Position im Array (Links vs Rechts)
+            if (projectionMatrix[2][0] < 0.0) {
+              // Linkes Auge: Stauche die linke Videohälfte auf die ganze Breite
+              uv.x = uv.x * 0.5;
+            } else if (projectionMatrix[2][0] > 0.0) {
+              // Rechtes Auge: Stauche die rechte Videohälfte auf die ganze Breite
+              uv.x = 0.5 + (uv.x * 0.5);
+            } else {
+              // Fallback für den PC-Monitor (zeigt einfach die linke Seite)
+              uv.x = uv.x * 0.5;
             }
           }
-        };
-      },
-
-      initDome: function (el, eye) {
-        var mesh = el.getObject3D('mesh');
-        if (!mesh) return;
-
-        // KORREKTUR DER VERDREHUNG: Wir drehen die 3D-Objekte direkt in Three.js
-        // Das zwingt die Halbkugel, sich perfekt nach vorne (Norden) auszurichten
-        mesh.rotation.y = Math.PI; // Entspricht 180 Grad Drehung im 3D-Raum
-
-        // Side-by-Side Textur-Verteilung (Linke Hälfte links, Rechte Hälfte rechts)
-        if (mesh.material && mesh.material.map) {
-          var texture = mesh.material.map;
-          texture.repeat.set(0.5, 1);
-          if (eye === 'right') {
-            texture.offset.set(0.5, 0);
-          }
+          
+          gl_FragColor = texture2D(src, uv);
         }
-      }
+      `
     });
 
-    // CONTROLLER CORES (Unlock, Play/Pause, DeoVR-Zoom)
+    // CORE PLAYER STEUERUNG (Unlock, Play/Pause, DeoVR-Zoom)
     AFRAME.registerComponent('player-core', {
       init: function () {
         var video = document.querySelector('#vr-video');
@@ -74,11 +82,12 @@
         playBtn.addEventListener('click', function () { video.play(); });
         pauseBtn.addEventListener('click', function () { video.pause(); });
 
-        // DeoVR Zoom per Joystick
+        // Echter DeoVR Zoom per Joystick (verschiebt das Video auf der Z-Achse vor/zurück)
         this.el.addEventListener('axismove', (evt) => {
           var joystickY = evt.detail.axis[1]; 
           if (Math.abs(joystickY) > 0.2) {
             this.currentZ += joystickY * 0.1; 
+            // Zoom-Grenzen im 3D-Raum
             this.currentZ = Math.min(3.0, Math.max(this.currentZ, -6.0));
             this.videoContainer.setAttribute('position', { x: 0, y: 0, z: this.currentZ });
           }
@@ -89,7 +98,7 @@
 </head>
 <body>
 
-  <a-scene player-core quest-stereo-control antialias="true">
+  <a-scene player-core antialias="true">
     
     <a-assets>
       <video id="vr-video" src="https://gitty12728.github.io/vrtests/schnitt2.mp4" crossorigin="anonymous" playsinline webkit-playsinline></video>
@@ -110,18 +119,12 @@
     <a-entity id="video-container" position="0 0 0">
       
       <a-videosphere 
-        id="left-dome"
-        src="#vr-video"
+        id="vr180-dome"
+        material="shader: vr180-stereo-shader; src: #vr-video"
         radius="12"
+        phi-start="0"
         phi-length="180"
-        scale="-1 1 1">
-      </a-videosphere>
-
-      <a-videosphere 
-        id="right-dome"
-        src="#vr-video"
-        radius="12"
-        phi-length="180"
+        rotation="0 -90 0"
         scale="-1 1 1">
       </a-videosphere>
       
