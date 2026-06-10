@@ -2,10 +2,10 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Echter VR180 Equirektangular Player</title>
+  <title>Echter VR180 SBS 3D Player</title>
   
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://unpkg.com/aframe-stereo-component@0.5.1/dist/aframe-stereo-component.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/bellona/aframe-webxr-stereo-component@master/dist/aframe-webxr-stereo-component.min.js"></script>
 
   <script>
     // Play / Pause Steuerung
@@ -14,38 +14,39 @@
         var video = document.querySelector('#vr-video');
         var playBtn = document.querySelector('#play-button');
         var pauseBtn = document.querySelector('#pause-button');
+        var unlockBarrier = document.querySelector('#unlock-barrier');
 
-        window.addEventListener('click', function() {
-          if (video.paused) {
-            video.play().then(() => { video.pause(); }).catch(e => console.log(e));
-          }
+        window.addEventListener('click', function unlock() {
+          video.play().then(() => {
+            unlockBarrier.setAttribute('visible', 'false');
+            unlockBarrier.setAttribute('class', 'not-clickable');
+            video.pause();
+            window.removeEventListener('click', unlock);
+          }).catch(e => console.error(e));
         });
 
-        playBtn.addEventListener('click', function () { video.play(); });
-        pauseBtn.addEventListener('click', function () { video.pause(); });
+        playBtn.addEventListener('click', function () {
+          if (!unlockBarrier.getAttribute('visible')) video.play();
+        });
+
+        pauseBtn.addEventListener('click', function () {
+          if (!unlockBarrier.getAttribute('visible')) video.pause();
+        });
       }
     });
 
-    // Der echte DeoVR-Zoom: Verschiebt die gesamte Halbkugel auf der Z-Achse
+    // Zoom-Komponente (schiebt die Kugel vor/zurück)
     AFRAME.registerComponent('deovr-zoom', {
       init: function () {
         this.videoContainer = document.querySelector('#video-container');
-        this.currentZ = 0.0; // Start direkt im Center der Halbkugel
+        this.currentZ = 0.0;
 
         this.el.addEventListener('axismove', (evt) => {
           var joystickY = evt.detail.axis[1]; 
-          
           if (Math.abs(joystickY) > 0.2) {
-            // Schiebt die Halbkugel vor oder zurück
             this.currentZ += joystickY * 0.1; 
-            // Grenzen, damit man nicht hinter die Kugel fliegt
             this.currentZ = Math.min(2.0, Math.max(this.currentZ, -5.0));
-            
-            this.videoContainer.setAttribute('position', {
-              x: 0,
-              y: 0,
-              z: this.currentZ
-            });
+            this.videoContainer.setAttribute('position', { x: 0, y: 0, z: this.currentZ });
           }
         });
       }
@@ -54,19 +55,23 @@
 </head>
 <body>
 
-  <a-scene video-controls>
+  <a-scene video-controls xrwebvr="stereo: true">
     
     <a-assets>
       <video id="vr-video" src="https://gitty12728.github.io/vrtests/schnitt2.mp4" crossorigin="anonymous" playsinline webkit-playsinline></video>
     </a-assets>
 
     <a-entity id="rig" position="0 0 0">
-      <a-camera stereocam="eye: left; mode: half"></a-camera>
-      <a-entity laser-controls="hand: left" raycaster="objects: .clickable" deovr-zoom></a-entity>
-      <a-entity laser-controls="hand: right" raycaster="objects: .clickable" deovr-zoom></a-entity>
+      <a-camera></a-camera>
+      <a-entity laser-controls="hand: left" deovr-zoom></a-entity>
+      <a-entity laser-controls="hand: right" deovr-zoom></a-entity>
     </a-entity>
 
     <a-sky color="#000"></a-sky>
+
+    <a-plane id="unlock-barrier" class="clickable" position="0 1.6 -1" width="4" height="3" color="#222" opacity="0.8">
+      <a-text value="KLICKE IN VR IRGENDWOHIN\nZUM STARTEN" align="center" width="6" color="#FFF"></a-text>
+    </a-plane>
 
     <a-entity id="video-container" position="0 0 0">
       
@@ -76,7 +81,7 @@
         phi-length="180"
         rotation="0 -90 0"
         scale="-1 1 1"
-        stereo="eye: left; mode: half">
+        webxr-stereo="eye: left; split: horizontal">
       </a-videosphere>
 
       <a-videosphere 
@@ -85,7 +90,7 @@
         phi-length="180"
         rotation="0 -90 0"
         scale="-1 1 1"
-        stereo="eye: right; mode: half">
+        webxr-stereo="eye: right; split: horizontal">
       </a-videosphere>
       
     </a-entity>
