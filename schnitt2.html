@@ -2,20 +2,19 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>VR180 3D Stereoskopischer Dome Player</title>
+  <title>Echter VR180 Equirektangular Player</title>
   
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://unpkg.com/aframe-stereo-component@0.5.1/dist/aframe-stereo-component.min.js"></script>
 
   <script>
-    // Play / Pause Steuerung via Laser-Pointer
+    // Play / Pause Steuerung
     AFRAME.registerComponent('video-controls', {
       init: function () {
         var video = document.querySelector('#vr-video');
         var playBtn = document.querySelector('#play-button');
         var pauseBtn = document.querySelector('#pause-button');
 
-        // Erster Klick schaltet Audio/Video im VR-Browser frei
         window.addEventListener('click', function() {
           if (video.paused) {
             video.play().then(() => { video.pause(); }).catch(e => console.log(e));
@@ -27,24 +26,25 @@
       }
     });
 
-    // Zoom-Komponente über den Joystick (skaliert die Videokuppel)
-    AFRAME.registerComponent('controller-zoom', {
+    // Der echte DeoVR-Zoom: Verschiebt die gesamte Halbkugel auf der Z-Achse
+    AFRAME.registerComponent('deovr-zoom', {
       init: function () {
-        this.domes = document.querySelectorAll('.vr180-dome');
-        this.scaleFactor = 1.0;
+        this.videoContainer = document.querySelector('#video-container');
+        this.currentZ = 0.0; // Start direkt im Center der Halbkugel
 
         this.el.addEventListener('axismove', (evt) => {
-          var joystickY = evt.detail.axis[1]; // Y-Achse (hoch/runter)
+          var joystickY = evt.detail.axis[1]; 
+          
           if (Math.abs(joystickY) > 0.2) {
-            this.scaleFactor -= joystickY * 0.03;
-            this.scaleFactor = Math.max(0.5, Math.min(this.scaleFactor, 5.0)); // Grenzen
+            // Schiebt die Halbkugel vor oder zurück
+            this.currentZ += joystickY * 0.1; 
+            // Grenzen, damit man nicht hinter die Kugel fliegt
+            this.currentZ = Math.min(2.0, Math.max(this.currentZ, -5.0));
             
-            this.domes.forEach(dome => {
-              dome.setAttribute('scale', {
-                x: this.scaleFactor, 
-                y: this.scaleFactor, 
-                z: this.scaleFactor
-              });
+            this.videoContainer.setAttribute('position', {
+              x: 0,
+              y: 0,
+              z: this.currentZ
             });
           }
         });
@@ -62,44 +62,43 @@
 
     <a-entity id="rig" position="0 0 0">
       <a-camera stereocam="eye: left; mode: half"></a-camera>
-      
-      <a-entity laser-controls="hand: left" raycaster="objects: .clickable" controller-zoom></a-entity>
-      <a-entity laser-controls="hand: right" raycaster="objects: .clickable" controller-zoom></a-entity>
+      <a-entity laser-controls="hand: left" raycaster="objects: .clickable" deovr-zoom></a-entity>
+      <a-entity laser-controls="hand: right" raycaster="objects: .clickable" deovr-zoom></a-entity>
     </a-entity>
 
-    <a-videosphere 
-      class="vr180-dome"
-      src="#vr-video" 
-      radius="10" 
-      segments-height="64" 
-      segments-width="64"
-      phi-length="180" 
-      rotation="0 -90 0"
-      stereo="eye: left; mode: half">
-    </a-videosphere>
+    <a-sky color="#000"></a-sky>
 
-    <a-videosphere 
-      class="vr180-dome"
-      src="#vr-video" 
-      radius="10" 
-      segments-height="64" 
-      segments-width="64"
-      phi-length="180" 
-      rotation="0 -90 0"
-      stereo="eye: right; mode: half">
-    </a-videosphere>
-    <a-entity id="ui-menu" position="0 0.8 -1.2" rotation="-25 0 0">
+    <a-entity id="video-container" position="0 0 0">
       
-      <a-plane color="#111" width="1.0" height="0.4" opacity="0.8"></a-plane>
+      <a-videosphere 
+        src="#vr-video"
+        radius="10"
+        phi-length="180"
+        rotation="0 -90 0"
+        scale="-1 1 1"
+        stereo="eye: left; mode: half">
+      </a-videosphere>
 
-      <a-plane id="play-button" class="clickable" color="#118811" width="0.35" height="0.18" position="-0.22 0 0.01">
-        <a-text value="PLAY" align="center" width="2.5" color="#FFF"></a-text>
-      </a-plane>
-
-      <a-plane id="pause-button" class="clickable" color="#CC2222" width="0.35" height="0.18" position="0.22 0 0.01">
-        <a-text value="PAUSE" align="center" width="2.5" color="#FFF"></a-text>
-      </a-plane>
+      <a-videosphere 
+        src="#vr-video"
+        radius="10"
+        phi-length="180"
+        rotation="0 -90 0"
+        scale="-1 1 1"
+        stereo="eye: right; mode: half">
+      </a-videosphere>
       
+    </a-entity>
+
+    <a-entity id="ui-menu" position="0 -0.8 -1.2" rotation="-30 0 0">
+      <a-plane color="#111" width="0.8" height="0.3" opacity="0.9">
+        <a-plane id="play-button" class="clickable" color="#118811" width="0.3" height="0.15" position="-0.18 0 0.01">
+          <a-text value="PLAY" align="center" width="2" color="#FFF"></a-text>
+        </a-plane>
+        <a-plane id="pause-button" class="clickable" color="#CC2222" width="0.3" height="0.15" position="0.18 0 0.01">
+          <a-text value="PAUSE" align="center" width="2" color="#FFF"></a-text>
+        </a-plane>
+      </a-plane>
     </a-entity>
 
   </a-scene>
