@@ -2,28 +2,41 @@
 <html>
 <head>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/orionshadow/aframe-stereo-component@master/dist/aframe-stereo-component.min.js"></script>
 </head>
 <body>
-  <a-scene>
+  <a-scene webxr="referenceSpaceType: local">
+    
     <a-assets>
-      <video id="vr-video" 
-             src="https://gitty12728.github.io/vrtests/schnitt2.mp4" 
-             crossorigin="anonymous" 
-             playsinline>
-      </video>
+      <video id="vr-video" src="https://gitty12728.github.io/vrtests/schnitt2.mp4" crossorigin="anonymous" playsinline></video>
     </a-assets>
 
-    <a-entity id="video-container">
-      <a-videosphere 
-        src="#vr-video" 
-        rotation="0 -90 0" 
-        theta-length="180" 
-        phi-length="180"
-        stereo="mode: side-by-side">
-      </a-videosphere>
+    <a-entity id="rig">
+      <a-camera position="0 1.6 0"></a-camera>
+      <a-entity laser-controls="hand: right" raycaster="objects: .clickable"></a-entity>
     </a-entity>
 
-    <a-camera></a-camera>
+    <a-videosphere 
+      src="#vr-video" 
+      rotation="0 -90 0" 
+      phi-length="180"
+      stereo="mode: side-by-side">
+    </a-videosphere>
+
+    <a-entity position="0 1.2 -1.5">
+      <a-box id="play-btn" class="clickable" color="green" width="0.3" height="0.15" depth="0.05" position="-0.2 0 0">
+        <a-text value="PLAY" align="center" position="0 0 0.03"></a-text>
+      </a-box>
+      <a-box id="pause-btn" class="clickable" color="red" width="0.3" height="0.15" depth="0.05" position="0.2 0 0">
+        <a-text value="PAUSE" align="center" position="0 0 0.03"></a-text>
+      </a-box>
+    </a-entity>
+
+    <script>
+      const video = document.querySelector('#vr-video');
+      document.querySelector('#play-btn').addEventListener('click', () => video.play());
+      document.querySelector('#pause-btn').addEventListener('click', () => video.pause());
+    </script>
   </a-scene>
 </body>
 </html>
