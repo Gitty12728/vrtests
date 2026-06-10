@@ -1,63 +1,29 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>VR180 Native Industry Standard</title>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script>
-    // 1. STABILE KANALTRENNUNG
-    AFRAME.registerComponent('stereo-layer', {
-      schema: { eye: { type: 'string', default: 'left' } },
-      init: function () {
-        this.el.addEventListener('object3dset', () => {
-          const mesh = this.el.getObject3D('mesh');
-          if (mesh) mesh.layers.set(this.data.eye === 'left' ? 1 : 2);
-        });
-      }
-    });
-
-    // 2. PLAYER-LOGIK (Autoplay-Workaround)
-    AFRAME.registerComponent('player-core', {
-      init: function () {
-        const video = document.querySelector('#vr-video');
-        const barrier = document.querySelector('#vr-start-barrier');
-        
-        barrier.addEventListener('click', () => {
-          video.play().then(() => {
-            barrier.setAttribute('visible', 'false');
-            // Hier erzwingen wir, dass das Video in den WebXR-Layer gerendert wird
-          }).catch(err => console.error("Video-Start fehlgeschlagen:", err));
-        });
-      }
-    });
-  </script>
 </head>
 <body>
-  <a-scene player-core antialias="true" renderer="colorManagement: true">
+  <a-scene>
     <a-assets>
-      <video id="vr-video" src="https://gitty12728.github.io/vrtests/schnitt2.mp4" crossorigin="anonymous" playsinline webkit-playsinline></video>
+      <video id="vr-video" 
+             src="https://gitty12728.github.io/vrtests/schnitt2.mp4" 
+             crossorigin="anonymous" 
+             playsinline>
+      </video>
     </a-assets>
 
-    <a-camera position="0 0 0"></a-camera>
-
-    <a-plane id="vr-start-barrier" class="clickable" position="0 1.6 -1.5" width="2" height="1" color="#222">
-      <a-text value="KLICKEN ZUM STARTEN" align="center"></a-text>
-    </a-plane>
-
     <a-entity id="video-container">
-      <a-entity 
-        geometry="primitive: sphere; radius: 10; phiStart: 90; phiLength: 180"
-        material="shader: flat; src: #vr-video"
-        scale="-1 1 1"
-        stereo-layer="eye: left">
-      </a-entity>
-      <a-entity 
-        geometry="primitive: sphere; radius: 10; phiStart: 90; phiLength: 180"
-        material="shader: flat; src: #vr-video"
-        scale="-1 1 1"
-        stereo-layer="eye: right">
-      </a-entity>
+      <a-videosphere 
+        src="#vr-video" 
+        rotation="0 -90 0" 
+        theta-length="180" 
+        phi-length="180"
+        stereo="mode: side-by-side">
+      </a-videosphere>
     </a-entity>
+
+    <a-camera></a-camera>
   </a-scene>
 </body>
 </html>
