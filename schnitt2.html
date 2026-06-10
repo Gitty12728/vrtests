@@ -2,14 +2,30 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Meta Quest 2 - Echter VR180 Player</title>
+  <title>Meta Quest 2 - VR180 Perfect Stereo</title>
   
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 
   <script>
-    // EIGENE PROFI-STEREO-TRENNUNG FÜR QUEST 2
-    // Teilt das Side-by-Side Video exakt in der Mitte und legt es auf die VR-Displays
-    AFRAME.registerComponent('quest-stereo', {
+    // 1. KAMERA-TRENNUNG FÜR QUEST 2 (Zwingt die Augen in die richtigen Layer)
+    AFRAME.registerComponent('stereo-cam', {
+      schema: { eye: { default: 'left' } },
+      init: function () {
+        var el = this.el;
+        var eye = this.data.eye;
+        
+        // Sobald die Kamera bereit ist, weisen wir den WebXR-Layer zu
+        el.addEventListener('camera-set-active', function () {
+          var camera = el.getObject3D('camera');
+          if (camera) {
+            camera.layers.set(eye === 'left' ? 1 : 2);
+          }
+        });
+      }
+    });
+
+    // 2. VIDEO-TEXTUR-TRENNUNG (Side-by-Side Split)
+    AFRAME.registerComponent('stereo-geometry', {
       schema: { eye: { default: 'left' } },
       init: function () {
         var el = this.el;
@@ -19,22 +35,22 @@
           var mesh = el.getObject3D('mesh');
           if (!mesh) return;
 
-          // Layer 1 = Linkes Display der Quest, Layer 2 = Rechtes Display
+          // Setze das Mesh auf den entsprechenden Layer (1 für links, 2 für rechts)
           mesh.layers.set(eye === 'left' ? 1 : 2);
 
-          // Video-Textur in der Mitte teilen (Side-by-Side)
+          // Halbiere die Video-Textur horizontal für Side-by-Side
           if (mesh.material && mesh.material.map) {
             var texture = mesh.material.map;
-            texture.repeat.set(0.5, 1); // Nur 50% der Breite nutzen
+            texture.repeat.set(0.5, 1);
             if (eye === 'right') {
-              texture.offset.set(0.5, 0); // Rechte Hälfte für das rechte Auge
+              texture.offset.set(0.5, 0); // Versatz für das rechte Auge
             }
           }
         });
       }
     });
 
-    // KOMBINIERTE STEUERUNG (Unlock, Play/Pause, DeoVR-Zoom)
+    // 3. STEUERUNG (Unlock, Play/Pause, DeoVR-Zoom)
     AFRAME.registerComponent('player-core', {
       init: function () {
         var video = document.querySelector('#vr-video');
@@ -44,19 +60,18 @@
         this.videoContainer = document.querySelector('#video-container');
         this.currentZ = 0.0;
 
-        // VR-Unlock: Erst in VR einmal triggern schaltet das Video sauber frei
         window.addEventListener('click', function unlock() {
           video.play().then(() => {
             barrier.setAttribute('visible', 'false');
             barrier.setAttribute('class', 'not-clickable');
             window.removeEventListener('click', unlock);
-          }).catch(e => console.log("Unlock wartet...", e));
+          }).catch(e => console.log("Warte auf Interaktion...", e));
         });
 
         playBtn.addEventListener('click', function () { video.play(); });
         pauseBtn.addEventListener('click', function () { video.pause(); });
 
-        // DeoVR-Zoom via Joystick (Verschiebt die Halbkugel vor/zurück)
+        // DeoVR Zoom per Joystick
         this.el.addEventListener('axismove', (evt) => {
           var joystickY = evt.detail.axis[1]; 
           if (Math.abs(joystickY) > 0.2) {
@@ -71,14 +86,16 @@
 </head>
 <body>
 
-  <a-scene player-core antialias="true">
+  <a-scene player-core antialias="true" webxr="referenceSpaceType: local">
     
     <a-assets>
       <video id="vr-video" src="https://gitty12728.github.io/vrtests/schnitt2.mp4" crossorigin="anonymous" playsinline webkit-playsinline></video>
     </a-assets>
 
     <a-entity id="rig" position="0 0 0">
-      <a-camera></a-camera>
+      <a-entity camera="active: true" stereo-cam="eye: left" position="0 0 0"></a-entity>
+      <a-entity stereo-cam="eye: right"></a-entity>
+      
       <a-entity laser-controls="hand: left" raycaster="objects: .clickable"></a-entity>
       <a-entity laser-controls="hand: right" raycaster="objects: .clickable"></a-entity>
     </a-entity>
@@ -97,7 +114,7 @@
         phi-length="180"
         rotation="0 -90 0"
         scale="-1 1 1"
-        quest-stereo="eye: left">
+        stereo-geometry="eye: left">
       </a-videosphere>
 
       <a-videosphere 
@@ -106,7 +123,7 @@
         phi-length="180"
         rotation="0 -90 0"
         scale="-1 1 1"
-        quest-stereo="eye: right">
+        stereo-geometry="eye: right">
       </a-videosphere>
       
     </a-entity>
@@ -124,7 +141,5 @@
 
   </a-scene>
 
-</body>
-</html>
 </body>
 </html>
