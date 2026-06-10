@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>VR Video Player mit Zoom</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  
+  <script>
+    // Komponente für das Play/Pause User Interface via Laser-Pointer
+    AFRAME.registerComponent('video-controls', {
+      init: function () {
+        var video = document.querySelector('#vr-video');
+        var playBtn = document.querySelector('#play-button');
+        var pauseBtn = document.querySelector('#pause-button');
+
+        playBtn.addEventListener('click', function () {
+          video.play();
+        });
+
+        pauseBtn.addEventListener('click', function () {
+          video.pause();
+        });
+      }
+    });
+
+    // Komponente für den Zoom per Joystick/Touchpad (Achsen-Eingabe)
+    AFRAME.registerComponent('controller-zoom', {
+      init: function () {
+        this.videoScreen = document.querySelector('#video-screen');
+        this.scaleFactor = 1.0;
+
+        // Event-Listener für Achsenbewegung (Joystick/Touchpad)
+        this.el.addEventListener('axismove', (evt) => {
+          // evt.detail.axis[1] ist meistens die Y-Achse des Joysticks (hoch/runter)
+          var joystickY = evt.detail.axis[1];
+          
+          if (Math.abs(joystickY) > 0.2) { // Deadzone, um Zittern zu vermeiden
+            // Joystick nach oben -> Vergrößern, nach unten -> Verkleinern
+            this.scaleFactor -= joystickY * 0.02; 
+            
+            // Grenzen für den Zoom setzen (nicht unendlich klein oder riesig)
+            this.scaleFactor = Math.max(0.5, Math.min(this.scaleFactor, 4.0));
+            
+            // Neue Skalierung auf das Video-Objekt anwenden
+            this.videoScreen.setAttribute('scale', {
+              x: this.scaleFactor, 
+              y: this.scaleFactor, 
+              z: 1
+            });
+          }
+        });
+      }
+    });
+  </script>
+</head>
+<body>
+
+  <a-scene video-controls>
+    
+    <a-assets>
+      <video id="vr-video" src="https://gitty12728.github.io/vrtests/schnitt2.mp4" crossorigin="anonymous" playsinline webkit-playsinline></video>
+    </a-assets>
+
+    <a-sky color="#1a1a1a"></a-sky>
+    <a-grid></a-grid>
+
+    <a-entity id="rig" position="0 1.6 0">
+      <a-camera></a-camera>
+      
+      <a-entity laser-controls="hand: left" raycaster="objects: .clickable" controller-zoom></a-entity>
+      <a-entity laser-controls="hand: right" raycaster="objects: .clickable" controller-zoom></a-entity>
+    </a-entity>
+
+    <a-entity id="video-screen" position="0 0.8 -2" rotation="-20 0 0">
+      
+      <a-video src="#vr-video" width="2" height="1.125"></a-video>
+
+      <a-entity position="0 -0.8 0">
+        
+        <a-plane id="play-button" class="clickable" color="#118811" width="0.4" height="0.2" position="-0.25 0 0.01">
+          <a-text value="PLAY" align="center" width="2" color="#FFF"></a-text>
+        </a-plane>
+
+        <a-plane id="pause-button" class="clickable" color="#CC2222" width="0.4" height="0.2" position="0.25 0 0.01">
+          <a-text value="PAUSE" align="center" width="2" color="#FFF"></a-text>
+        </a-plane>
+        
+      </a-entity>
+    </a-entity>
+
+  </a-scene>
+
+</body>
+</html>
