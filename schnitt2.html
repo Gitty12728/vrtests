@@ -2,12 +2,12 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Quest 2 - VR180 SBS Native Standard</title>
+  <title>Quest 2 - VR180 SBS Perfect Geometry</title>
   
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
   <script>
-    // 1. INDUSTRIESTANDARD SBS-SPLIT (Klonen der Geometrie & Layer-Zuweisung)
+    // INDUSTRIESTANDARD SBS-SPLIT
     AFRAME.registerComponent('vr180-sbs', {
       schema: { eye: { type: 'string', default: 'left' } },
       
@@ -18,25 +18,22 @@
         var applySplit = function(mesh) {
           if (!mesh) return;
 
-          // Native WebXR Hardware-Trennung (Layer 1 = linkes Display, Layer 2 = rechtes Display)
+          // Layer-Trennung (1 = links, 2 = rechts)
           mesh.layers.set(eye === 'left' ? 1 : 2);
 
-          // VERHINDERT DEN DOPPELBILD-FEHLER: Wir müssen die Geometrie klonen, 
-          // damit sich das linke und rechte Auge nicht gegenseitig überschreiben!
+          // Geometrie klonen, um Doppelbild-Konflikte zu vermeiden
           if (!mesh.geometry.isVR180Cloned) {
             mesh.geometry = mesh.geometry.clone();
             mesh.geometry.isVR180Cloned = true;
 
-            // Wir halbieren die UV-Koordinaten (die Textur-Zuordnung) physisch auf der Kugel
+            // Textur genau halbieren
             var uvAttribute = mesh.geometry.attributes.uv;
             for (var i = 0; i < uvAttribute.count; i++) {
               var u = uvAttribute.getX(i);
               
               if (eye === 'left') {
-                // Linkes Auge nutzt 0.0 bis 0.5 des 6K-Videos
                 uvAttribute.setX(i, u * 0.5);
               } else {
-                // Rechtes Auge nutzt 0.5 bis 1.0 des 6K-Videos
                 uvAttribute.setX(i, 0.5 + (u * 0.5));
               }
             }
@@ -44,18 +41,17 @@
           }
         };
 
-        // Sofort anwenden, falls das Mesh schon existiert, ansonsten auf das Event warten
         var currentMesh = el.getObject3D('mesh');
         if (currentMesh) applySplit(currentMesh);
         el.addEventListener('object3dset', function () { applySplit(el.getObject3D('mesh')); });
       }
     });
 
-    // 2. DESKTOP PREVIEW FIX (Verhindert schwarzen Bildschirm am PC)
+    // DESKTOP PREVIEW FIX
     AFRAME.registerComponent('desktop-preview', {
       init: function () {
         var enableLayer = function (camera) {
-          if (camera) camera.layers.enable(1); // Zeigt Layer 1 (Linkes Auge) am PC an
+          if (camera) camera.layers.enable(1); 
         };
         enableLayer(this.el.getObject3D('camera'));
         this.el.addEventListener('camera-set-active', function (evt) {
@@ -64,7 +60,7 @@
       }
     });
 
-    // 3. PLAYER-STEUERUNG (Play/Pause, Unlock, DeoVR-Zoom)
+    // PLAYER-STEUERUNG
     AFRAME.registerComponent('player-core', {
       init: function () {
         var video = document.querySelector('#vr-video');
@@ -119,21 +115,19 @@
 
     <a-entity id="video-container" position="0 0 0">
       
-      <a-videosphere 
-        src="#vr-video"
-        radius="12"
-        phi-start="90"
-        phi-length="180"
+      <a-entity 
+        geometry="primitive: sphere; radius: 12; phiStart: 90; phiLength: 180"
+        material="shader: flat; src: #vr-video"
+        scale="-1 1 1"
         vr180-sbs="eye: left">
-      </a-videosphere>
+      </a-entity>
 
-      <a-videosphere 
-        src="#vr-video"
-        radius="12"
-        phi-start="90"
-        phi-length="180"
+      <a-entity 
+        geometry="primitive: sphere; radius: 12; phiStart: 90; phiLength: 180"
+        material="shader: flat; src: #vr-video"
+        scale="-1 1 1"
         vr180-sbs="eye: right">
-      </a-videosphere>
+      </a-entity>
       
     </a-entity>
 
