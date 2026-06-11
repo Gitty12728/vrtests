@@ -2,23 +2,27 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>VR Garten - Fix</title>
+    <title>VR Garten - Funktionierendes Setup</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.4.0/dist/aframe-extras.min.js"></script>
-    <script src="https://rawgit.com/fernandojsg/aframe-teleport-controls/master/dist/aframe-teleport-controls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-teleport-controls@0.3.11/dist/aframe-teleport-controls.min.js"></script>
     
     <script>
-      // Snap Turning Komponente für ruckeliges Drehen
       AFRAME.registerComponent('snap-turn', {
         init: function () {
+          this.moved = false;
+          // Höre auf die Bewegung des Joysticks
           this.el.addEventListener('thumbstickmoved', (evt) => {
             if (evt.detail.x > 0.8 && !this.moved) {
-              this.el.parentElement.object3D.rotation.y -= THREE.MathUtils.degToRad(45);
+              // Drehung nach rechts um 45 Grad
+              this.el.sceneEl.querySelector('#cameraRig').object3D.rotation.y -= THREE.MathUtils.degToRad(45);
               this.moved = true;
             } else if (evt.detail.x < -0.8 && !this.moved) {
-              this.el.parentElement.object3D.rotation.y += THREE.MathUtils.degToRad(45);
+              // Drehung nach links um 45 Grad
+              this.el.sceneEl.querySelector('#cameraRig').object3D.rotation.y += THREE.MathUtils.degToRad(45);
               this.moved = true;
             } else if (Math.abs(evt.detail.x) < 0.2) {
+              // Joystick ist wieder in der Mitte, bereit für die nächste Drehung
               this.moved = false;
             }
           });
@@ -28,24 +32,31 @@
   </head>
   <body>
     <a-scene>
+      <a-assets>
+        <img id="gras" src="https://cdn.aframe.io/a-painter/images/floor.jpg">
+      </a-assets>
+
       <a-entity id="cameraRig" position="0 0 0">
-        <a-camera position="0 1.6 0"></a-camera>
+        <a-camera id="head" look-controls></a-camera>
         
-        <a-entity id="left-hand"
-                  laser-controls="hand: left"
-                  teleport-controls="cameraRig: #cameraRig; teleportOrigin: #cameraRig; button: trigger; curveLineWidth: 0.02; curveHitColor: red">
+        <a-entity id="leftHand" 
+                  oculus-touch-controls="hand: left" 
+                  teleport-controls="cameraRig: #cameraRig; teleportOrigin: #head; button: trigger; type: parabolic; curveHitColor: #2196F3; curveMissColor: #FF5722;">
         </a-entity>
 
-        <a-entity id="right-hand"
-                  laser-controls="hand: right"
+        <a-entity id="rightHand" 
+                  oculus-touch-controls="hand: right" 
                   snap-turn>
         </a-entity>
       </a-entity>
 
-      <a-plane id="ground" rotation="-90 0 0" width="50" height="50" color="#7BC8A4"></a-plane>
-      <a-sky color="#87CEEB"></a-sky>
+      <a-plane src="#gras" rotation="-90 0 0" width="100" height="100" repeat="50 50"></a-plane>
       
-      <a-box position="-2 0.5 -3" color="#4CC3D9"></a-box>
+      <a-sky color="#87CEEB"></a-sky>
+
+      <a-box position="-3 0.5 -5" color="#4CC3D9"></a-box>
+      <a-sphere position="3 1.25 -7" radius="1.25" color="#EF2D5E"></a-sphere>
+      <a-cylinder position="0 0.75 -4" radius="0.5" height="1.5" color="#FFC65D"></a-cylinder>
     </a-scene>
   </body>
 </html>
