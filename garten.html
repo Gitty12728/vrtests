@@ -2,33 +2,50 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>VR Garten Teleportation</title>
+    <title>VR Garten - Fix</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.4.0/dist/aframe-extras.min.js"></script>
     <script src="https://rawgit.com/fernandojsg/aframe-teleport-controls/master/dist/aframe-teleport-controls.min.js"></script>
+    
+    <script>
+      // Snap Turning Komponente für ruckeliges Drehen
+      AFRAME.registerComponent('snap-turn', {
+        init: function () {
+          this.el.addEventListener('thumbstickmoved', (evt) => {
+            if (evt.detail.x > 0.8 && !this.moved) {
+              this.el.parentElement.object3D.rotation.y -= THREE.MathUtils.degToRad(45);
+              this.moved = true;
+            } else if (evt.detail.x < -0.8 && !this.moved) {
+              this.el.parentElement.object3D.rotation.y += THREE.MathUtils.degToRad(45);
+              this.moved = true;
+            } else if (Math.abs(evt.detail.x) < 0.2) {
+              this.moved = false;
+            }
+          });
+        }
+      });
+    </script>
   </head>
   <body>
     <a-scene>
-      <a-assets>
-        <img id="gras" src="https://cdn.aframe.io/a-painter/images/floor.jpg">
-      </a-assets>
-
-      <a-entity id="cameraRig">
+      <a-entity id="cameraRig" position="0 0 0">
         <a-camera position="0 1.6 0"></a-camera>
         
         <a-entity id="left-hand"
                   laser-controls="hand: left"
-                  teleport-controls="cameraRig: #cameraRig; teleportOrigin: #cameraRig; button: trigger">
+                  teleport-controls="cameraRig: #cameraRig; teleportOrigin: #cameraRig; button: trigger; curveLineWidth: 0.02; curveHitColor: red">
+        </a-entity>
+
+        <a-entity id="right-hand"
+                  laser-controls="hand: right"
+                  snap-turn>
         </a-entity>
       </a-entity>
 
-      <a-plane src="#gras" rotation="-90 0 0" width="20" height="20" repeat="10 10"></a-plane>
+      <a-plane id="ground" rotation="-90 0 0" width="50" height="50" color="#7BC8A4"></a-plane>
       <a-sky color="#87CEEB"></a-sky>
       
-      <a-box position="-2 0.5 -3" rotation="0 45 0" color="#4CC3D9"></a-box>
-      <a-sphere position="2 1.25 -5" radius="1.25" color="#EF2D5E"></a-sphere>
-      <a-cylinder position="0 0.75 -3" radius="0.5" height="1.5" color="#FFC65D"></a-cylinder>
-
+      <a-box position="-2 0.5 -3" color="#4CC3D9"></a-box>
     </a-scene>
   </body>
 </html>
