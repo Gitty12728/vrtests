@@ -2,13 +2,13 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>VR Ultimate Playground - Fixed Controls</title>
+    <title>VR Playground - Weißer Standard-Laser</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.3.0/dist/aframe-physics-system.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-blink-controls@0.4.3/dist/aframe-blink-controls.min.js"></script>
 
     <script>
-      AFRAME.registerComponent('button-interaktiver-ball', {
+      AFRAME.registerComponent('button-ball-spawner', {
         init: function () {
           this.el.addEventListener('click', () => {
             var scene = document.querySelector('a-scene');
@@ -34,13 +34,21 @@
         <a-camera id="head" look-controls position="0 1.6 0"></a-camera>
         
         <a-entity oculus-touch-controls="hand: left">
-          <a-entity blink-controls="cameraRig: #cameraRig; teleportOrigin: #head; collisionEntities: #ground; button: trackpad; curveStyle: curved; snapTurn: true; turnAngle: 45"></a-entity>
-          <a-entity raycaster="objects: .klickbar; far: 10; showLine: true; lineColor: #00FFFF" cursor="rayOrigin: entity" rotation="0 0 0"></a-entity>
+          <a-entity blink-controls="cameraRig: #cameraRig; 
+                                  teleportOrigin: #head; 
+                                  collisionEntities: #ground; 
+                                  button: trackpad; 
+                                  curveStyle: curved; 
+                                  snapTurn: true; 
+                                  turnAngle: 45">
+          </a-entity>
         </a-entity>
 
         <a-entity oculus-touch-controls="hand: right">
-          <a-entity blink-controls="cameraRig: #cameraRig; teleportOrigin: #head; collisionEntities: #ground; button: trackpad; curveStyle: curved; snapTurn: true; turnAngle: 45"></a-entity>
-          <a-entity raycaster="objects: .klickbar; far: 10; showLine: true; lineColor: #00FFFF" cursor="rayOrigin: entity" rotation="0 0 0"></a-entity>
+          <a-entity raycaster="objects: .klickbar; far: 10; showLine: true; lineColor: #FFFFFF" 
+                    cursor="rayOrigin: entity; showLine: true;" 
+                    position="0 0 0" 
+                    rotation="-15 0 0"> </a-entity>
         </a-entity>
       </a-entity>
 
@@ -54,7 +62,7 @@
         <a-plane color="#222" width="1.5" height="0.8" opacity="0.9"></a-plane>
         <a-text value="PLAYGROUND PANEL" align="center" position="0 0.25 0.01" width="3" color="#FFF"></a-text>
         
-        <a-box class="klickbar" button-interaktiver-ball position="0 -0.1 0.02" width="1" height="0.25" depth="0.05" color="#4CC3D9"
+        <a-box class="klickbar" button-ball-spawner position="0 -0.1 0.02" width="1" height="0.25" depth="0.05" color="#4CC3D9"
                animation__mouseenter="property: material.color; to: #FFD700; startEvents: mouseenter; dur: 100"
                animation__mouseleave="property: material.color; to: #4CC3D9; startEvents: mouseleave; dur: 100">
           <a-text value="Ball spawnen" align="center" position="0 0 0.03" width="2.5" color="#000"></a-text>
