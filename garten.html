@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>VR Ultimate Playground</title>
+    <title>VR Playground - Fixed Controls</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.3.0/dist/aframe-physics-system.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-blink-controls@0.4.3/dist/aframe-blink-controls.min.js"></script>
@@ -11,13 +11,11 @@
       AFRAME.registerComponent('button-interaktiver-ball', {
         init: function () {
           this.el.addEventListener('click', () => {
-            // Spawnt einen neuen Physik-Ball über dem Tisch
             var scene = document.querySelector('a-scene');
             var ball = document.createElement('a-sphere');
             ball.setAttribute('position', '0 4 -3');
             ball.setAttribute('radius', '0.2');
             ball.setAttribute('color', '#FF5722');
-            // Macht den Ball physikalisch dynamisch (fällt runter)
             ball.setAttribute('physx-body', 'type: dynamic; mass: 5');
             scene.appendChild(ball);
           });
@@ -35,13 +33,13 @@
       <a-entity id="cameraRig">
         <a-camera id="head" look-controls position="0 1.6 0"></a-camera>
         
-        <a-entity oculus-touch-controls="hand: left"
+        <a-entity oculus-touch-controls="hand: left" rotation="15 0 0"
                   blink-controls="cameraRig: #cameraRig; teleportOrigin: #head; collisionEntities: #ground; button: trackpad; curveStyle: curved; snapTurn: true; turnAngle: 45"
                   raycaster="objects: .klickbar; far: 10; showLine: true; lineColor: #00FFFF"
                   cursor="rayOrigin: entity">
         </a-entity>
 
-        <a-entity oculus-touch-controls="hand: right"
+        <a-entity oculus-touch-controls="hand: right" rotation="15 0 0"
                   blink-controls="cameraRig: #cameraRig; teleportOrigin: #head; collisionEntities: #ground; button: trackpad; curveStyle: curved; snapTurn: true; turnAngle: 45"
                   raycaster="objects: .klickbar; far: 10; showLine: true; lineColor: #00FFFF"
                   cursor="rayOrigin: entity">
@@ -51,12 +49,14 @@
       <a-plane id="ground" src="#gras" rotation="-90 0 0" width="100" height="100" repeat="50 50"
                physx-body="type: static"></a-plane>
       
-      <a-sky color="#111"></a-sky> <a-ambient-light type="ambient" color="#bbb"></a-ambient-light>
+      <a-sky color="#111"></a-sky> 
+      <a-ambient-light type="ambient" color="#bbb"></a-ambient-light>
       <a-directional-light type="directional" position="1 4 3" intensity="0.8"></a-directional-light>
 
       <a-entity position="0 2 -2" rotation="10 0 0">
         <a-plane color="#222" width="1.5" height="0.8" opacity="0.9"></a-plane>
         <a-text value="PLAYGROUND PANEL" align="center" position="0 0.25 0.01" width="3" color="#FFF"></a-text>
+        
         <a-box class="klickbar" button-interaktiver-ball position="0 -0.1 0.02" width="1" height="0.25" depth="0.05" color="#4CC3D9"
                animation__mouseenter="property: material.color; to: #FFD700; startEvents: mouseenter; dur: 100"
                animation__mouseleave="property: material.color; to: #4CC3D9; startEvents: mouseleave; dur: 100">
@@ -64,20 +64,13 @@
         </a-box>
       </a-entity>
 
-      <a-box id="tisch" position="0 0.5 -3" width="2" height="1" depth="1" color="#8B4513"
-             physx-body="type: static"></a-box>
+      <a-box id="tisch" position="0 0.5 -3" width="2" height="1" depth="1" color="#8B4513" physx-body="type: static"></a-box>
 
-      <a-box position="-0.4 1.2 -3" width="0.3" height="0.3" depth="0.3" color="#FFC65D"
-             physx-body="type: dynamic; mass: 1"></a-box>
-      <a-box position="0 1.2 -3" width="0.3" height="0.3" depth="0.3" color="#EF2D5E"
-             physx-body="type: dynamic; mass: 1"></a-box>
-      <a-box position="0.4 1.2 -3" width="0.3" height="0.3" depth="0.3" color="#1976D2"
-             physx-body="type: dynamic; mass: 1"></a-box>
-             
-      <a-box position="-0.2 1.5 -3" width="0.3" height="0.3" depth="0.3" color="#4CAF50"
-             physx-body="type: dynamic; mass: 1"></a-box>
-      <a-box position="0.2 1.5 -3" width="0.3" height="0.3" depth="0.3" color="#9C27B0"
-             physx-body="type: dynamic; mass: 1"></a-box>
+      <a-box position="-0.4 1.2 -3" width="0.3" height="0.3" depth="0.3" color="#FFC65D" physx-body="type: dynamic; mass: 1"></a-box>
+      <a-box position="0 1.2 -3" width="0.3" height="0.3" depth="0.3" color="#EF2D5E" physx-body="type: dynamic; mass: 1"></a-box>
+      <a-box position="0.4 1.2 -3" width="0.3" height="0.3" depth="0.3" color="#1976D2" physx-body="type: dynamic; mass: 1"></a-box>
+      <a-box position="-0.2 1.5 -3" width="0.3" height="0.3" depth="0.3" color="#4CAF50" physx-body="type: dynamic; mass: 1"></a-box>
+      <a-box position="0.2 1.5 -3" width="0.3" height="0.3" depth="0.3" color="#9C27B0" physx-body="type: dynamic; mass: 1"></a-box>
 
     </a-scene>
   </body>
