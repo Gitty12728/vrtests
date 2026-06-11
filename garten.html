@@ -2,37 +2,54 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>VR Garten - Moderner WebXR Standard</title>
+    <title>VR Garten - Bigscreen & Snap-Turn Fix</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.4.0/dist/aframe-extras.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-blink-controls@0.4.3/dist/aframe-blink-controls.min.js"></script>
+    
+    <script>
+      AFRAME.registerComponent('mein-snap-turn', {
+        init: function () {
+          this.moved = false;
+          this.el.addEventListener('thumbstickmoved', (evt) => {
+            // Wenn der rechte Stick nach rechts gedrückt wird
+            if (evt.detail.x > 0.7 && !this.moved) {
+              this.el.sceneEl.querySelector('#cameraRig').object3D.rotation.y -= THREE.MathUtils.degToRad(45);
+              this.moved = true;
+            } 
+            // Wenn der rechte Stick nach links gedrückt wird
+            else if (evt.detail.x < -0.7 && !this.moved) {
+              this.el.sceneEl.querySelector('#cameraRig').object3D.rotation.y += THREE.MathUtils.degToRad(45);
+              this.moved = true;
+            } 
+            // Stick ist wieder in der Mitte
+            else if (Math.abs(evt.detail.x) < 0.2) {
+              this.moved = false;
+            }
+          });
+        }
+      });
+    </script>
   </head>
   <body>
-    <a-scene json-model="src: #">
+    <a-scene>
       <a-assets>
         <img id="gras" src="https://cdn.aframe.io/a-painter/images/floor.jpg">
       </a-assets>
 
-      <a-entity id="cameraRig" movement-controls="controls: checkpoint; speed: 0.3">
+      <a-entity id="cameraRig" position="0 0 0">
         <a-camera id="head" look-controls position="0 1.6 0"></a-camera>
         
-        <a-entity oculus-touch-controls="hand: left" 
-                  laser-controls="hand: left"
-                  raycaster="objects: .teleport-ziel; far: 20; showLine: true"
-                  line="color: #00FF00; opacity: 0.8">
+        <a-entity oculus-touch-controls="hand: left"
+                  blink-controls="cameraRig: #cameraRig; teleportOrigin: #head; collisionEntities: #ground; button: trigger; curveStyle: curved">
         </a-entity>
 
         <a-entity oculus-touch-controls="hand: right" 
-                  snap-turn-controls="reference: #cameraRig; turnAngle: 45">
+                  mein-snap-turn>
         </a-entity>
       </a-entity>
 
-      <a-plane src="#gras" rotation="-90 0 0" width="100" height="100" repeat="50 50"></a-plane>
+      <a-plane id="ground" src="#gras" rotation="-90 0 0" width="100" height="100" repeat="50 50"></a-plane>
       <a-sky color="#87CEEB"></a-sky>
-
-      <a-entity checkpoint class="teleport-ziel" position="0 0.05 -5" geometry="primitive: cylinder; radius: 0.6; height: 0.02" material="color: #00FF00; opacity: 0.5"></a-entity>
-      <a-entity checkpoint class="teleport-ziel" position="-5 0.05 -8" geometry="primitive: cylinder; radius: 0.6; height: 0.02" material="color: #00FF00; opacity: 0.5"></a-entity>
-      <a-entity checkpoint class="teleport-ziel" position="5 0.05 -8" geometry="primitive: cylinder; radius: 0.6; height: 0.02" material="color: #00FF00; opacity: 0.5"></a-entity>
-      <a-entity checkpoint class="teleport-ziel" position="0 0.05 -12" geometry="primitive: cylinder; radius: 0.6; height: 0.02" material="color: #00FF00; opacity: 0.5"></a-entity>
 
       <a-box position="-3 0.5 -5" color="#4CC3D9"></a-box>
       <a-sphere position="3 1.25 -7" radius="1.25" color="#EF2D5E"></a-sphere>
