@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Meta Quest Ultimate Gun Playground</title>
+    <title>Meta Quest - Echte Wurf-Physik</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.4.0/dist/aframe-extras.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.3.0/dist/aframe-physics-system.min.js"></script>
@@ -10,76 +10,61 @@
     <script>
       AFRAME.registerComponent('vr-gun', {
         init: function () {
-          // Wir lauschen auf den Trigger-Knopf der rechten Hand
           this.el.addEventListener('triggerdown', () => {
             var scene = this.el.sceneEl;
             var bullet = document.createElement('a-sphere');
             
-            // 1. Position der Pistolenmündung ermitteln
-            // Wir holen uns die aktuelle Position und Rotation deiner echten VR-Hand
+            // 1. Startposition an der echten Hand ermitteln
             var gunMatrix = this.el.object3D.matrixWorld;
             var position = new THREE.Vector3();
             position.setFromMatrixPosition(gunMatrix);
             
-            // 2. Richtung berechnen, in die die Pistole zeigt (geradeaus nach vorne)
+            // 2. Richtung berechnen (wohin zeigt der Controller)
             var direction = new THREE.Vector3(0, 0, -1);
             direction.applyQuaternion(this.el.object3D.quaternion);
             
-            // Die Kugel startet ein kleines Stück vor dem Controller
+            // Startpunkt kurz vor dem Lauf
             bullet.setAttribute('position', {
               x: position.x + direction.x * 0.4,
               y: position.y + direction.y * 0.4,
               z: position.z + direction.z * 0.4
             });
             
-            // Kugel-Aussehen (Kleine, leuchtend gelbe Projektile)
-            bullet.setAttribute('radius', '0.05');
-            bullet.setAttribute('color', '#FFEB3B');
-            bullet.setAttribute('material', 'emissive: #FFEB3B');
+            // Aussehen der Wurfkugel (Etwas größer, wie ein schwerer Tennisball)
+            bullet.setAttribute('radius', '0.08');
+            bullet.setAttribute('color', '#FF9800'); // Sattes Orange
+            bullet.setAttribute('material', 'roughness: 0.3; metalness: 0.1');
             
-            // Echte PhysX-Physik verpassen (leicht, aber extrem schnell)
-            bullet.setAttribute('physx-body', 'type: dynamic; mass: 0.2');
+            // HIER DIE ANPASSUNG: Höhere Masse für echte Schwerkraft-Wirkung
+            bullet.setAttribute('physx-body', 'type: dynamic; mass: 5.0; linearDamping: 0.01');
             scene.appendChild(bullet);
 
-            // 3. Schuss-Impuls! Sobald die Physik bereit ist, fliegt die Kugel nach vorne
+            // 3. Der physikalische Abschuss
             bullet.addEventListener('physics-ready', () => {
-              var speed = 45; // Geschwindigkeit der Kugel
+              // Wuchtige Geschwindigkeit für eine saubere ballistische Kurve
+              var launchVelocity = 28; 
+              
               bullet.body.applyImpulse(
-                { x: direction.x * speed, y: direction.y * speed, z: direction.z * speed },
+                { 
+                  x: direction.x * launchVelocity, 
+                  y: direction.y * launchVelocity, 
+                  z: direction.z * launchVelocity 
+                },
                 { x: 0, y: 0, z: 0 }
               );
             });
 
-            // 4. Aufräumen: Kugel nach 4 Sekunden löschen, damit die Quest nicht ruckelt
+            // Projektile nach 6 Sekunden löschen, damit die Performance stabil bleibt
             setTimeout(() => {
               if(bullet.parentNode) bullet.parentNode.removeChild(bullet);
-            }, 4000);
-          });
-        }
-      });
-
-      // Physik-Skript für den grünen Knopf (Ball-Kanone bleibt als Extra drin)
-      AFRAME.registerComponent('ball-cannon', {
-        init: function () {
-          this.el.addEventListener('click', () => {
-            var scene = document.querySelector('a-scene');
-            var ball = document.createElement('a-sphere');
-            ball.setAttribute('position', '0 1.5 -4.5');
-            ball.setAttribute('radius', '0.15');
-            ball.setAttribute('color', '#FF5722');
-            ball.setAttribute('physx-body', 'type: dynamic; mass: 2');
-            scene.appendChild(ball);
-
-            ball.addEventListener('physics-ready', () => {
-              ball.body.applyImpulse({x: 0, y: 2, z: -15}, {x: 0, y: 0, z: 0});
-            });
+            }, 6000);
           });
         }
       });
     </script>
   </head>
   <body>
-    <a-scene physx="autoLoad: true; delay: 1000; wasmUrl: https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.3.0/lib/physx.release.wasm">
+    <a-scene physx="autoLoad: true; delay: 1000; gravity: 0 -9.81 0; wasmUrl: https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.3.0/lib/physx.release.wasm">
       
       <a-assets>
         <img id="gras" src="https://cdn.aframe.io/a-painter/images/floor.jpg">
@@ -91,11 +76,11 @@
         <a-entity oculus-touch-controls="hand: left"></a-entity>
 
         <a-entity oculus-touch-controls="hand: right" vr-gun
-                  raycaster="objects: .klickbar; far: 10; showLine: true; lineColor: #FFFFFF; lineOpacity: 1"
+                  raycaster="objects: .klickbar; far: 15; showLine: true; lineColor: #FFFFFF; lineOpacity: 0.5"
                   cursor="rayOrigin: entity">
           
-          <a-box position="0 0 -0.15" width="0.04" height="0.05" depth="0.3" color="#263238"></a-box>
-          <a-cylinder position="0 0.01 -0.3" rotation="90 0 0" radius="0.015" height="0.05" color="#78909C"></a-cylinder>
+          <a-box position="0 0 -0.15" width="0.03" height="0.04" depth="0.25" color="#37474F"></a-box>
+          <a-cylinder position="0 0.005 -0.28" rotation="90 0 0" radius="0.012" height="0.04" color="#cfd8dc"></a-cylinder>
           
           <a-entity snap-turn-controls="reference: #cameraRig; turnAngle: 45"></a-entity>
         </a-entity>
@@ -106,26 +91,25 @@
       <a-ambient-light intensity="0.6"></a-ambient-light>
       <a-directional-light position="2 4 -3" intensity="0.8"></a-directional-light>
 
+      <a-box position="0 0.5 -8" rotation="15 0 0" width="4" height="0.1" depth="5" color="#00bcd4" physx-body="type: static"></a-box>
+      <a-box position="-2 0.8 -8" rotation="15 0 0" width="0.1" height="0.6" depth="5" color="#212121" physx-body="type: static"></a-box>
+      <a-box position="2 0.8 -8" rotation="15 0 0" width="0.1" height="0.6" depth="5" color="#212121" physx-body="type: static"></a-box>
 
-      <a-box position="0 0.5 -5" width="1" height="1" depth="1" color="#333" physx-body="type: static"></a-box>
-      <a-cylinder position="0 1.5 -4.8" rotation="90 0 0" radius="0.25" height="0.8" color="#ff0000" physx-body="type: static"></a-cylinder>
-      <a-box class="klickbar" ball-cannon position="0 1.1 -4.8" width="0.3" height="0.1" depth="0.3" color="#00FF00"></a-box>
-
-      <a-box position="0 0.8 -9" rotation="20 0 0" width="3" height="0.1" depth="4" color="#4CC3D9" physx-body="type: static"></a-box>
-      <a-box position="-1.5 1 -9" rotation="20 0 0" width="0.1" height="0.5" depth="4" color="#222" physx-body="type: static"></a-box>
-      <a-box position="1.5 1 -9" rotation="20 0 0" width="0.1" height="0.5" depth="4" color="#222" physx-body="type: static"></a-box>
-
-      <a-entity position="0 0 -12">
-        <a-box position="-0.4 0.2 0" width="0.3" height="0.4" depth="0.3" color="#FFC65D" physx-body="type: dynamic; mass: 1"></a-box>
-        <a-box position="0 0.2 0" width="0.3" height="0.4" depth="0.3" color="#EF2D5E" physx-body="type: dynamic; mass: 1"></a-box>
-        <a-box position="0.4 0.2 0" width="0.3" height="0.4" depth="0.3" color="#1976D2" physx-body="type: dynamic; mass: 1"></a-box>
-        <a-box position="-0.2 0.6 0" width="0.3" height="0.4" depth="0.3" color="#4CAF50" physx-body="type: dynamic; mass: 1"></a-box>
-        <a-box position="0.2 0.6 0" width="0.3" height="0.4" depth="0.3" color="#9C27B0" physx-body="type: dynamic; mass: 1"></a-box>
-        <a-box position="0 1.0 0" width="0.3" height="0.4" depth="0.3" color="#FF5722" physx-body="type: dynamic; mass: 1"></a-box>
+      <a-entity position="0 0 -11">
+        <a-box position="-0.6 0.2 0" width="0.35" height="0.4" depth="0.35" color="#FFC65D" physx-body="type: dynamic; mass: 2"></a-box>
+        <a-box position="-0.2 0.2 0" width="0.35" height="0.4" depth="0.35" color="#FFC65D" physx-body="type: dynamic; mass: 2"></a-box>
+        <a-box position="0.2 0.2 0" width="0.35" height="0.4" depth="0.35" color="#FFC65D" physx-body="type: dynamic; mass: 2"></a-box>
+        <a-box position="0.6 0.2 0" width="0.35" height="0.4" depth="0.35" color="#FFC65D" physx-body="type: dynamic; mass: 2"></a-box>
+        <a-box position="-0.4 0.6 0" width="0.35" height="0.4" depth="0.35" color="#EF2D5E" physx-body="type: dynamic; mass: 2"></a-box>
+        <a-box position="0 0.6 0" width="0.35" height="0.4" depth="0.35" color="#EF2D5E" physx-body="type: dynamic; mass: 2"></a-box>
+        <a-box position="0.4 0.6 0" width="0.35" height="0.4" depth="0.35" color="#EF2D5E" physx-body="type: dynamic; mass: 2"></a-box>
+        <a-box position="-0.2 1.0 0" width="0.35" height="0.4" depth="0.35" color="#4CAF50" physx-body="type: dynamic; mass: 2"></a-box>
+        <a-box position="0.2 1.0 0" width="0.35" height="0.4" depth="0.35" color="#4CAF50" physx-body="type: dynamic; mass: 2"></a-box>
+        <a-box position="0 1.4 0" width="0.35" height="0.4" depth="0.35" color="#9C27B0" physx-body="type: dynamic; mass: 2"></a-box>
       </a-entity>
 
-      <a-box position="2 4 -5" width="0.2" height="0.2" depth="0.2" color="#333" physx-body="type: static"></a-box>
-      <a-sphere position="2 2 -5" radius="0.4" color="#757575" physx-body="type: dynamic; mass: 10"></a-sphere>
+      <a-box position="2.5 4 -6" width="0.2" height="0.2" depth="0.2" color="#333" physx-body="type: static"></a-box>
+      <a-sphere position="2.5 2 -6" radius="0.4" color="#757575" physx-body="type: dynamic; mass: 15"></a-sphere>
 
     </a-scene>
   </body>
