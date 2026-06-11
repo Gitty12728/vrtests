@@ -2,88 +2,135 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Meta Quest Ultimate Playground</title>
+    <title>VR & PC Combo Playground</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.4.0/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.3.0/dist/aframe-physics-system.min.js"></script>
 
     <script>
-      AFRAME.registerComponent('ball-cannon', {
+      // Das unzerstörbare Flug-Skript für die Kugeln
+      AFRAME.registerComponent('ballistik-kugel', {
         init: function () {
-          this.el.addEventListener('click', () => {
-            var scene = document.querySelector('a-scene');
-            var ball = document.createElement('a-sphere');
-            
-            // Startposition an der Mündung der Kanone
-            ball.setAttribute('position', '0 1.5 -4.5');
-            ball.setAttribute('radius', '0.15');
-            ball.setAttribute('color', '#FF5722');
-            // Physik aktivieren
-            ball.setAttribute('physx-body', 'type: dynamic; mass: 2');
-            scene.appendChild(ball);
+          if (!this.el.customVelocity) {
+            this.el.customVelocity = new THREE.Vector3(0, 0, -20);
+          }
+          this.gravity = -18; 
+        },
+        tick: function (time, timeDelta) {
+          var dt = timeDelta / 1000;
+          if (dt === 0 || isNaN(dt)) return;
 
-            // Warte ganz kurz, bis die Physik geladen ist, und schieße den Ball nach vorne
-            ball.addEventListener('physics-ready', () => {
-              ball.body.applyImpulse(
-                {x: 0, y: 2, z: -15}, // Starker Impuls nach vorne (Z-Achse)
-                {x: 0, y: 0, z: 0}
-              );
+          var pos = this.el.getAttribute('position');
+          this.el.customVelocity.y += this.gravity * dt;
+
+          pos.x += this.el.customVelocity.x * dt;
+          pos.y += this.el.customVelocity.y * dt;
+          pos.z += this.el.customVelocity.z * dt;
+
+          this.el.setAttribute('position', pos);
+
+          if (pos.y <= 0.1) {
+            pos.y = 0.1;
+            this.el.setAttribute('position', pos);
+            this.el.removeAttribute('ballistik-kugel'); 
+          }
+        }
+      });
+
+      // UNIVERSAL SCHUSS-SYSTEM (Funktioniert über VR-Trigger UND PC-Mausklick)
+      AFRAME.registerComponent('universal-shooter', {
+        init: function () {
+          // Funktion, die den Schuss tatsächlich ausführt
+          this.fire = () => {
+            var scene = this.el.sceneEl;
+            var kugel = document.createElement('a-sphere');
+            
+            // Position und Richtung ermitteln (egal ob Hand-Controller oder PC-Kamera)
+            var currentMatrix = this.el.object3D.matrixWorld;
+            var startPos = new THREE.Vector3();
+            startPos.setFromMatrixPosition(currentMatrix);
+            
+            var richtung = new THREE.Vector3(0, 0, -1);
+            richtung.applyQuaternion(this.el.object3D.quaternion);
+            
+            // Kugel leicht vor dem Ursprung platzieren
+            kugel.setAttribute('position', {
+              x: startPos.x + richtung.x * 0.5,
+              y: startPos.y + richtung.y * 0.5,
+              z: startPos.z + richtung.z * 0.5
             });
-          });
+            
+            kugel.setAttribute('radius', '0.15');
+            kugel.setAttribute('color', '#FF0000');
+            
+            // Speed einspritzen
+            var power = 35; 
+            kugel.customVelocity = new THREE.Vector3(
+              richtung.x * power,
+              richtung.y * power,
+              richtung.z * power
+            );
+            
+            kugel.setAttribute('ballistik-kugel', '');
+            scene.appendChild(kugel);
+
+            setTimeout(() => {
+              if (kugel.parentNode) kugel.parentNode.removeChild(kugel);
+            }, 5000);
+          };
+
+          // Event 1: Wenn es sich um einen VR-Controller handelt (Trigger gedrückt)
+          this.el.addEventListener('triggerdown', this.fire);
+
+          // Event 2: Wenn es sich um die PC-Kamera handelt (Maus geklickt)
+          if (this.el.id === 'head') {
+            window.addEventListener('click', (e) => {
+              // Nur schießen, wenn wir NICHT im VR-Modus sind (verhindert Doppelschüsse)
+              if (!this.el.sceneEl.is('vr-mode')) {
+                this.fire();
+              }
+            });
+          }
         }
       });
     </script>
   </head>
   <body>
-    <a-scene physx="autoLoad: true; delay: 1000; wasmUrl: https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.3.0/lib/physx.release.wasm">
-      
+    
+    <a-scene>
       <a-assets>
         <img id="gras" src="https://cdn.aframe.io/a-painter/images/floor.jpg">
       </a-assets>
 
-      <a-entity id="cameraRig" movement-controls="controls: gamepad; speed: 0.15">
-        <a-camera id="head" look-controls position="0 1.6 0"></a-camera>
+      <a-entity id="cameraRig" movement-controls="controls: gamepad, keyboard; speed: 0.15">
+        
+        <a-camera id="head" look-controls universal-shooter position="0 1.6 0">
+          <a-entity cursor="rayOrigin: entity" raycaster="objects: .ziel; far: 15"
+                    position="0 0 -1"
+                    geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.015"
+                    material="color: #FFF; shader: flat; opacity: 0.5"
+                    visible="true">
+          </a-entity>
+        </a-camera>
         
         <a-entity oculus-touch-controls="hand: left"></a-entity>
 
-        <a-entity oculus-touch-controls="hand: right"
-                  raycaster="objects: .klickbar; far: 10; showLine: true; lineColor: #FFFFFF; lineOpacity: 1"
+        <a-entity oculus-touch-controls="hand: right" universal-shooter
+                  raycaster="objects: .ziel; far: 15; showLine: true; lineColor: #FFFFFF; lineOpacity: 0.8"
                   cursor="rayOrigin: entity">
+          
+          <a-box position="0 0 -0.15" width="0.04" height="0.04" depth="0.25" color="#212121"></a-box>
+          
           <a-entity snap-turn-controls="reference: #cameraRig; turnAngle: 45"></a-entity>
         </a-entity>
       </a-entity>
 
-      <a-plane id="ground" src="#gras" rotation="-90 0 0" width="100" height="100" repeat="50 50" physx-body="type: static"></a-plane>
-      <a-sky color="#0a0a15"></a-sky>
-      <a-ambient-light intensity="0.6"></a-ambient-light>
-      <a-directional-light position="2 4 -3" intensity="0.8"></a-directional-light>
+      <a-plane id="ground" src="#gras" rotation="-90 0 0" width="100" height="100" repeat="50 50"></a-plane>
+      <a-sky color="#0a0a20"></a-sky>
+      <a-ambient-light intensity="0.7"></a-ambient-light>
 
-
-      <a-box position="0 0.5 -5" width="1" height="1" depth="1" color="#333" physx-body="type: static"></a-box>
-      <a-cylinder position="0 1.5 -4.8" rotation="90 0 0" radius="0.25" height="0.8" color="#ff0000" physx-body="type: static"></a-cylinder>
-      <a-box class="klickbar" ball-cannon position="0 1.1 -4.8" width="0.3" height="0.1" depth="0.3" color="#00FF00"
-             animation__mouseenter="property: scale; to: 1.1 1.1 1.1; dur: 100"
-             animation__mouseleave="property: scale; to: 1 1 1 1; dur: 100">
-      </a-box>
-
-
-      <a-box position="0 0.8 -9" rotation="20 0 0" width="3" height="0.1" depth="4" color="#4CC3D9" physx-body="type: static"></a-box>
-      <a-box position="-1.5 1 -9" rotation="20 0 0" width="0.1" height="0.5" depth="4" color="#222" physx-body="type: static"></a-box>
-      <a-box position="1.5 1 -9" rotation="20 0 0" width="0.1" height="0.5" depth="4" color="#222" physx-body="type: static"></a-box>
-
-
-      <a-entity position="0 0 -12">
-        <a-box position="-0.4 0.2 0" width="0.3" height="0.4" depth="0.3" color="#FFC65D" physx-body="type: dynamic; mass: 1"></a-box>
-        <a-box position="0 0.2 0" width="0.3" height="0.4" depth="0.3" color="#EF2D5E" physx-body="type: dynamic; mass: 1"></a-box>
-        <a-box position="0.4 0.2 0" width="0.3" height="0.4" depth="0.3" color="#1976D2" physx-body="type: dynamic; mass: 1"></a-box>
-        <a-box position="-0.2 0.6 0" width="0.3" height="0.4" depth="0.3" color="#4CAF50" physx-body="type: dynamic; mass: 1"></a-box>
-        <a-box position="0.2 0.6 0" width="0.3" height="0.4" depth="0.3" color="#9C27B0" physx-body="type: dynamic; mass: 1"></a-box>
-        <a-box position="0 1.0 0" width="0.3" height="0.4" depth="0.3" color="#FF5722" physx-body="type: dynamic; mass: 1"></a-box>
-      </a-entity>
-
-
-      <a-box position="2 4 -5" width="0.2" height="0.2" depth="0.2" color="#333" physx-body="type: static"></a-box>
-      <a-sphere position="2 2 -5" radius="0.4" color="#757575" physx-body="type: dynamic; mass: 10"></a-sphere>
+      <a-box class="ziel" position="0 1.5 -7" width="1.5" height="3" depth="1.5" color="#00BCD4"></a-box>
+      <a-box class="ziel" position="-3 1 -5" width="1" height="2" depth="1" color="#E91E63"></a-box>
+      <a-box class="ziel" position="3 1 -5" width="1" height="2" depth="1" color="#4CAF50"></a-box>
 
     </a-scene>
   </body>
