@@ -2,31 +2,33 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>VR New Playground - Ultimate Physics & Fixed Controls</title>
+    <title>Quantum Sandbox - Universal WebXR</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.3.0/dist/aframe-physics-system.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-blink-controls@0.4.3/dist/aframe-blink-controls.min.js"></script>
 
     <script>
-      // 1. Farbanpassung für interaktive Säulen
-      AFRAME.registerComponent('color-changer', {
+      // Komponente: Objekt-Stoß (Anti-Gravitation)
+      AFRAME.registerComponent('quantum-kick', {
         init: function () {
           this.el.addEventListener('click', () => {
-            const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
-            this.el.setAttribute('material', 'color', randomColor);
+            if (this.el.body) {
+              this.el.body.applyImpulse(
+                {x: (Math.random() - 0.5) * 5, y: 12, z: (Math.random() - 0.5) * 5}, 
+                {x: 0, y: 0, z: 0}
+              );
+            }
           });
         }
       });
 
-      // 2. Schwerkraft-Inverter für die schwebende Kugel
-      AFRAME.registerComponent('gravity-kick', {
+      // Komponente: Farb-Wechsler
+      AFRAME.registerComponent('color-flip', {
         init: function () {
           this.el.addEventListener('click', () => {
-            // Verpasst dem Objekt einen physikalischen Stoß nach oben
-            this.el.body.applyImpulse(
-              {x: 0, y: 15, z: 0}, // Kraft nach oben
-              {x: 0, y: 0, z: 0}   // Ursprungspunkt des Stoßes
-            );
+            const colors = ['#38bdf8', '#818cf8', '#fbbf24', '#f87171'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            this.el.setAttribute('material', 'color', randomColor);
           });
         }
       });
@@ -36,13 +38,13 @@
     <a-scene physx="autoLoad: true; delay: 1000; wasmUrl: https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.3.0/lib/physx.release.wasm">
       
       <a-assets>
-        <img id="sand" src="https://cdn.aframe.io/a-painter/images/floor.jpg">
+        <img id="grid" src="https://cdn.aframe.io/a-painter/images/floor.jpg">
       </a-assets>
 
       <a-entity id="cameraRig">
         <a-camera id="head" look-controls position="0 1.6 0"></a-camera>
         
-        <a-entity oculus-touch-controls="hand: left"
+        <a-entity hand-controls="hand: left"
                   blink-controls="cameraRig: #cameraRig; 
                                   teleportOrigin: #head; 
                                   collisionEntities: #ground; 
@@ -52,35 +54,39 @@
                                   turnAngle: 45">
         </a-entity>
 
-        <a-entity laser-controls="hand: right"
-                  raycaster="objects: .klickbar; far: 20; lineColor: #FFFFFF; lineOpacity: 1"
+        <a-entity hand-controls="hand: right"
+                  laser-controls="hand: right"
+                  raycaster="objects: .clickable; far: 20; showLine: true; lineColor: #FFFFFF; lineOpacity: 0.8"
                   cursor="rayOrigin: entity">
         </a-entity>
       </a-entity>
 
-      <a-plane id="ground" src="#sand" rotation="-90 0 0" width="100" height="100" repeat="30 30" physx-body="type: static"></a-plane>
-      
-      <a-sky color="#050510"></a-sky> 
-      <a-ambient-light type="ambient" color="#999"></a-ambient-light>
-      <a-directional-light type="directional" position="-1 5 -2" intensity="0.7"></a-directional-light>
+      <a-plane id="ground" src="#grid" rotation="-90 0 0" width="100" height="100" repeat="40 40" physx-body="type: static"></a-plane>
+      <a-sky color="#020617"></a-sky> 
+      <a-ambient-light intensity="0.5"></a-ambient-light>
+      <a-point-light position="2 5 3" intensity="0.8"></a-point-light>
 
-      <a-cylinder class="klickbar" color-changer position="-3 1.5 -4" radius="0.4" height="3" color="#4CC3D9"></a-cylinder>
-      <a-cylinder class="klickbar" color-changer position="3 1.5 -4" radius="0.4" height="3" color="#FFC65D"></a-cylinder>
+      <a-box class="clickable" color-flip position="-4 1 -6" width="1.5" height="2" depth="1.5" color="#38bdf8"></a-box>
+      <a-box class="clickable" color-flip position="4 1 -6" width="1.5" height="2" depth="1.5" color="#818cf8"></a-box>
 
-      <a-box position="0 0.75 -5" width="0.1" height="1.5" depth="0.6" color="#E91E63" physx-body="type: dynamic; mass: 2"></a-box>
-      <a-box position="0 0.75 -5.5" width="0.1" height="1.5" depth="0.6" color="#9C27B0" physx-body="type: dynamic; mass: 2"></a-box>
-      <a-box position="0 0.75 -6" width="0.1" height="1.5" depth="0.6" color="#673AB7" physx-body="type: dynamic; mass: 2"></a-box>
-      <a-box position="0 0.75 -6.5" width="0.1" height="1.5" depth="0.6" color="#3F51B5" physx-body="type: dynamic; mass: 2"></a-box>
-      <a-box position="0 0.75 -7" width="0.1" height="1.5" depth="0.6" color="#2196F3" physx-body="type: dynamic; mass: 2"></a-box>
+      <a-entity position="0 0 -8">
+        <a-box position="-1.5 1 0" width="0.2" height="2" depth="0.8" color="#f87171" physx-body="type: dynamic; mass: 2"></a-box>
+        <a-box position="-0.75 1 0" width="0.2" height="2" depth="0.8" color="#f87171" physx-body="type: dynamic; mass: 2"></a-box>
+        <a-box position="0 1 0" width="0.2" height="2" depth="0.8" color="#f87171" physx-body="type: dynamic; mass: 2"></a-box>
+        <a-box position="0.75 1 0" width="0.2" height="2" depth="0.8" color="#f87171" physx-body="type: dynamic; mass: 2"></a-box>
+        <a-box position="1.5 1 0" width="0.2" height="2" depth="0.8" color="#f87171" physx-body="type: dynamic; mass: 2"></a-box>
+      </a-entity>
 
-      <a-box position="0 0.2 -2" width="1" height="0.4" depth="1" color="#333" physx-body="type: static"></a-box>
-      <a-sphere class="klickbar" gravity-kick position="0 1.2 -2" radius="0.3" color="#00FF00" 
-                physx-body="type: dynamic; mass: 3"
-                animation="property: material.emissive; to: #00FF00; loop: true; dir: alternate; dur: 1000">
+      <a-sphere class="clickable" quantum-kick position="0 3 -5" radius="0.5" color="#fbbf24" 
+                physx-body="type: dynamic; mass: 1"
+                animation="property: material.emissive; to: #fbbf24; dur: 500; loop: true; dir: alternate">
       </a-sphere>
 
-      <a-sphere position="-2 1 -2" radius="0.8" color="#FF5722" physx-body="type: dynamic; mass: 0.5"></a-sphere>
+      <a-cylinder position="-2 0.5 -3" radius="0.3" height="1" color="#10b981" physx-body="type: dynamic"></a-cylinder>
+      <a-cylinder position="2 0.5 -3" radius="0.3" height="1" color="#10b981" physx-body="type: dynamic"></a-cylinder>
 
     </a-scene>
   </body>
 </html>
+
+Deine plattformunabhängige Quantum-Sandbox ist bereit! Du kannst sie auf GitHub hochladen und sowohl mit der Quest als auch mit der Pico 4 testen. Der weiße Laser wird automatisch aus der Spitze deiner Controller schießen. Viel Spaß beim Experimentieren!
