@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Meta Quest - Echte Wurf-Physik</title>
+    <title>Meta Quest - Heavy Cannon Physics</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.4.0/dist/aframe-extras.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.3.0/dist/aframe-physics-system.min.js"></script>
@@ -14,7 +14,7 @@
             var scene = this.el.sceneEl;
             var bullet = document.createElement('a-sphere');
             
-            // 1. Startposition an der echten Hand ermitteln
+            // 1. Position der Hand holen
             var gunMatrix = this.el.object3D.matrixWorld;
             var position = new THREE.Vector3();
             position.setFromMatrixPosition(gunMatrix);
@@ -25,36 +25,36 @@
             
             // Startpunkt kurz vor dem Lauf
             bullet.setAttribute('position', {
-              x: position.x + direction.x * 0.4,
-              y: position.y + direction.y * 0.4,
-              z: position.z + direction.z * 0.4
+              x: position.x + direction.x * 0.5,
+              y: position.y + direction.y * 0.5,
+              z: position.z + direction.z * 0.5
             });
             
-            // Aussehen der Wurfkugel (Etwas größer, wie ein schwerer Tennisball)
-            bullet.setAttribute('radius', '0.08');
-            bullet.setAttribute('color', '#FF9800'); // Sattes Orange
-            bullet.setAttribute('material', 'roughness: 0.3; metalness: 0.1');
+            // Aussehen: Eine schwere, metallische Kanonenkugel
+            bullet.setAttribute('radius', '0.12');
+            bullet.setAttribute('color', '#37474F'); 
+            bullet.setAttribute('material', 'roughness: 0.2; metalness: 0.8');
             
-            // HIER DIE ANPASSUNG: Höhere Masse für echte Schwerkraft-Wirkung
-            bullet.setAttribute('physx-body', 'type: dynamic; mass: 5.0; linearDamping: 0.01');
+            // RADIKALE PHYSIK: Eine 25 Kilo schwere Kugel!
+            bullet.setAttribute('physx-body', 'type: dynamic; mass: 25.0');
             scene.appendChild(bullet);
 
-            // 3. Der physikalische Abschuss
-            bullet.addEventListener('physics-ready', () => {
-              // Wuchtige Geschwindigkeit für eine saubere ballistische Kurve
-              var launchVelocity = 28; 
-              
-              bullet.body.applyImpulse(
-                { 
-                  x: direction.x * launchVelocity, 
-                  y: direction.y * launchVelocity, 
-                  z: direction.z * launchVelocity 
-                },
-                { x: 0, y: 0, z: 0 }
-              );
-            });
+            // FIX: Wir warten 50 Millisekunden, bis PhysX die Kugel registriert hat.
+            // Erst DANN jagen wir die Anfangsgeschwindigkeit rein!
+            setTimeout(() => {
+              if (bullet.body) {
+                var launchVelocity = 60; // Brutale Anfangsgeschwindigkeit
+                
+                // Wir nutzen velocity (Geschwindigkeit) statt Impulse, das erzwingt sofortigen Speed!
+                bullet.body.setLinearVelocity({
+                  x: direction.x * launchVelocity,
+                  y: direction.y * launchVelocity,
+                  z: direction.z * launchVelocity
+                });
+              }
+            }, 50);
 
-            // Projektile nach 6 Sekunden löschen, damit die Performance stabil bleibt
+            // Nach 6 Sekunden löschen für stabile FPS
             setTimeout(() => {
               if(bullet.parentNode) bullet.parentNode.removeChild(bullet);
             }, 6000);
@@ -76,19 +76,19 @@
         <a-entity oculus-touch-controls="hand: left"></a-entity>
 
         <a-entity oculus-touch-controls="hand: right" vr-gun
-                  raycaster="objects: .klickbar; far: 15; showLine: true; lineColor: #FFFFFF; lineOpacity: 0.5"
+                  raycaster="objects: .klickbar; far: 15; showLine: true; lineColor: #FFFFFF; lineOpacity: 0.6"
                   cursor="rayOrigin: entity">
           
-          <a-box position="0 0 -0.15" width="0.03" height="0.04" depth="0.25" color="#37474F"></a-box>
-          <a-cylinder position="0 0.005 -0.28" rotation="90 0 0" radius="0.012" height="0.04" color="#cfd8dc"></a-cylinder>
+          <a-box position="0 0 -0.15" width="0.05" height="0.05" depth="0.3" color="#212121"></a-box>
+          <a-cylinder position="0 0 -0.3" rotation="90 0 0" radius="0.02" height="0.05" color="#555555"></a-cylinder>
           
           <a-entity snap-turn-controls="reference: #cameraRig; turnAngle: 45"></a-entity>
         </a-entity>
       </a-entity>
 
       <a-plane id="ground" src="#gras" rotation="-90 0 0" width="100" height="100" repeat="50 50" physx-body="type: static"></a-plane>
-      <a-sky color="#0a0a15"></a-sky>
-      <a-ambient-light intensity="0.6"></a-ambient-light>
+      <a-sky color="#050510"></a-sky>
+      <a-ambient-light intensity="0.5"></a-ambient-light>
       <a-directional-light position="2 4 -3" intensity="0.8"></a-directional-light>
 
       <a-box position="0 0.5 -8" rotation="15 0 0" width="4" height="0.1" depth="5" color="#00bcd4" physx-body="type: static"></a-box>
