@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>VR Garten Teleportation</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.4.0/dist/aframe-extras.min.js"></script>
+    <script src="https://rawgit.com/fernandojsg/aframe-teleport-controls/master/dist/aframe-teleport-controls.min.js"></script>
+  </head>
+  <body>
+    <a-scene>
+      <a-assets>
+        <img id="gras" src="https://cdn.aframe.io/a-painter/images/floor.jpg">
+      </a-assets>
+
+      <a-entity id="cameraRig">
+        <a-camera position="0 1.6 0"></a-camera>
+        
+        <a-entity id="left-hand"
+                  laser-controls="hand: left"
+                  teleport-controls="cameraRig: #cameraRig; teleportOrigin: #cameraRig; button: trigger">
+        </a-entity>
+      </a-entity>
+
+      <a-plane src="#gras" rotation="-90 0 0" width="20" height="20" repeat="10 10"></a-plane>
+      <a-sky color="#87CEEB"></a-sky>
+      
+      <a-box position="-2 0.5 -3" rotation="0 45 0" color="#4CC3D9"></a-box>
+      <a-sphere position="2 1.25 -5" radius="1.25" color="#EF2D5E"></a-sphere>
+      <a-cylinder position="0 0.75 -3" radius="0.5" height="1.5" color="#FFC65D"></a-cylinder>
+
+    </a-scene>
+  </body>
+</html>
