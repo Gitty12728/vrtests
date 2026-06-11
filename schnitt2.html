@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
+  <meta charset="UTF-8">
+  <title>VR180 Split-Video Player</title>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/orionshadow/aframe-stereo-component@master/dist/aframe-stereo-component.min.js"></script>
 </head>
 <body>
   <a-scene webxr="referenceSpaceType: local">
+    
     <a-assets>
-      <video id="vr-video" src="https://gitty12728.github.io/vrtests/schnitt2.mp4" crossorigin="anonymous" playsinline></video>
+      <video id="vid-left" src="links.mp4" crossorigin="anonymous" playsinline loop="true"></video>
+      <video id="vid-right" src="rechts.mp4" crossorigin="anonymous" playsinline loop="true"></video>
     </a-assets>
 
     <a-entity id="rig">
@@ -15,14 +18,17 @@
       <a-entity laser-controls="hand: right" raycaster="objects: .clickable"></a-entity>
     </a-entity>
 
-    <a-curvedimage 
-      src="#vr-video" 
-      radius="5.7" 
-      theta-length="180" 
-      rotation="0 90 0"
-      height="6.4"
-      stereo="mode: side-by-side">
-    </a-curvedimage>
+    <a-entity layer="1">
+       <a-entity geometry="primitive: sphere; radius: 10; phiLength: 180" 
+                 material="src: #vid-left; side: back; shader: flat" 
+                 rotation="0 90 0"></a-entity>
+    </a-entity>
+
+    <a-entity layer="2">
+       <a-entity geometry="primitive: sphere; radius: 10; phiLength: 180" 
+                 material="src: #vid-right; side: back; shader: flat" 
+                 rotation="0 90 0"></a-entity>
+    </a-entity>
 
     <a-entity position="0 1.2 -1.5" id="ui-menu">
       <a-box id="play-btn" class="clickable" color="green" width="0.3" height="0.15" depth="0.05" position="-0.2 0 0">
@@ -34,9 +40,35 @@
     </a-entity>
 
     <script>
-      const video = document.querySelector('#vr-video');
-      document.querySelector('#play-btn').addEventListener('click', () => video.play());
-      document.querySelector('#pause-btn').addEventListener('click', () => video.pause());
+      const vidLeft = document.querySelector('#vid-left');
+      const vidRight = document.querySelector('#vid-right');
+
+      // Sync-Loop: Prüft pro Frame, ob beide Videos synchron sind
+      function syncVideos() {
+        if (Math.abs(vidLeft.currentTime - vidRight.currentTime) > 0.05) {
+          vidRight.currentTime = vidLeft.currentTime;
+        }
+        requestAnimationFrame(syncVideos);
+      }
+
+      // Buttons triggern beide Videos gleichzeitig
+      document.querySelector('#play-btn').addEventListener('click', () => {
+        vidLeft.play();
+        vidRight.play();
+        syncVideos();
+      });
+
+      document.querySelector('#pause-btn').addEventListener('click', () => {
+        vidLeft.pause();
+        vidRight.pause();
+      });
+
+      // Autoplay bei Eintritt in VR
+      document.querySelector('a-scene').addEventListener('enter-vr', () => {
+        vidLeft.play();
+        vidRight.play();
+        syncVideos();
+      });
     </script>
   </a-scene>
 </body>
