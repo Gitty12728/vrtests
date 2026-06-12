@@ -9,10 +9,10 @@
         // CUSTOM SHADER FÜR EINEN SAMTWEICHEN HIGHLIGHT-ÜBERGANG
         AFRAME.registerShader('smooth-highlight', {
             schema: {
-                angle: {type: 'number', default: 30},
+                angle: {type: 'number', default: 45},     // Etwas größerer Winkel für bessere Sichtbarkeit
                 feather: {type: 'number', default: 20},
                 color: {type: 'color', default: '#000000'},
-                opacity: {type: 'number', default: 0.75}
+                opacity: {type: 'number', default: 0.80}   // Etwas dunkler für stärkeren Kontrast
             },
             vertexShader: `
                 varying vec3 vLocalPosition;
@@ -30,37 +30,38 @@
                 
                 void main() {
                     vec3 dir = normalize(vLocalPosition);
+                    // Berechnet den Winkel im Kreis
                     float targetAzimuth = atan(dir.x, -dir.z);
                     float degAbs = degrees(abs(targetAzimuth));
                     float halfAngle = angle / 2.0;
+                    
+                    // Erzeugt den weichen Verlauf
                     float mask = smoothstep(halfAngle, halfAngle + feather, degAbs);
                     gl_FragColor = vec4(color, mask * opacity);
                 }
             `
         });
 
-        // NEU: INTERAKTIONS-STEUERUNG FÜR DIE TOUR-BUTTONS
+        // INTERAKTIONS-STEUERUNG FÜR DIE TOUR-BUTTONS
         AFRAME.registerComponent('tour-control', {
             schema: {
                 targetAngle: {type: 'number', default: 0}
             },
             init: function () {
-                // Klick-Event (funktioniert mit Maus am PC & Laser in VR)
                 this.el.addEventListener('click', () => {
                     const highlight = document.querySelector('#tour-highlight');
                     const currentRot = highlight.getAttribute('rotation') || {x: 0, y: 0, z: 0};
                     
-                    // Alten Übergang stoppen und neuen, flüssigen Übergang starten
                     highlight.removeAttribute('animation');
                     highlight.setAttribute('animation', {
                         property: 'rotation',
                         from: `${currentRot.x} ${currentRot.y} ${currentRot.z}`,
                         to: `0 ${this.data.targetAngle} 0`,
-                        dur: 2000,
+                        dur: 1500, // Etwas schneller für knackigeres Feedback
                         easing: 'easeInOutQuad'
                     });
 
-                    // Klick-Feedback (Knopf drückt sich kurz rein)
+                    // Visuelles Klick-Feedback
                     this.el.setAttribute('animation__click', {
                         property: 'scale',
                         from: '1 1 1',
@@ -71,12 +72,11 @@
                     });
                 });
 
-                // Hover-Effekte für ein feinfühliges Interface
                 this.el.addEventListener('mouseenter', () => {
-                    this.el.setAttribute('material', 'color', '#222222'); // Dunklerer Kontrast bei Hover
+                    this.el.setAttribute('material', 'color', '#222222');
                 });
                 this.el.addEventListener('mouseleave', () => {
-                    this.el.setAttribute('material', 'color', '#111111'); // Standard-Zustand
+                    this.el.setAttribute('material', 'color', '#111111');
                 });
             }
         });
@@ -100,7 +100,7 @@
             }
         });
 
-        // JOYSTICK-LAUFEN (FÜR QUEST 2 LINKS)
+        // JOYSTICK-LAUFEN
         AFRAME.registerComponent('joystick-move', {
             schema: {
                 rig: {type: 'selector', default: '#cameraRig'},
@@ -137,7 +137,7 @@
             }
         });
 
-        // INTELLIGENTE KOLLISIONS- und GEH-SPERRE (COLLIDER)
+        // COLLIDER
         AFRAME.registerComponent('player-bounds', {
             init: function () {
                 this.head = document.querySelector('#head').object3D;
@@ -150,17 +150,11 @@
                 this.head.getWorldPosition(this.worldPos);
                 const limit = 2.2; 
                 
-                if (this.worldPos.x > limit) {
-                    this.rig.position.x -= (this.worldPos.x - limit);
-                } else if (this.worldPos.x < -limit) {
-                    this.rig.position.x += (-limit - this.worldPos.x);
-                }
+                if (this.worldPos.x > limit) this.rig.position.x -= (this.worldPos.x - limit);
+                else if (this.worldPos.x < -limit) this.rig.position.x += (-limit - this.worldPos.x);
 
-                if (this.worldPos.z > limit) {
-                    this.rig.position.z -= (this.worldPos.z - limit);
-                } else if (this.worldPos.z < -limit) {
-                    this.rig.position.z += (-limit - this.worldPos.z);
-                }
+                if (this.worldPos.z > limit) this.rig.position.z -= (this.worldPos.z - limit);
+                else if (this.worldPos.z < -limit) this.rig.position.z += (-limit - this.worldPos.z);
 
                 this.head.getWorldPosition(this.worldPos);
 
@@ -182,19 +176,17 @@
 
     <a-scene renderer="antialias: true; colorManagement: true; precision: mediump; foveationLevel: 3;">
         
-        <a-assets timeout="30000">
-            <img id="panorama" src="360.jpg">
+        <a-assets timeout="1000"> <img id="panorama" src="360.jpg">
             <audio id="ambient-wind" src="wind.mp3" preload="auto"></audio>
             <a-asset-item id="statue" src="statue.glb"></a-asset-item>
-            
             <img id="rounded-mask" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='256' height='64'><rect width='256' height='64' rx='18' fill='white'/></svg>">
         </a-assets>
 
-        <a-sky src="#panorama" rotation="0 -90 0" sky-optimize></a-sky>
+        <a-sky src="#panorama" color="#888" rotation="0 -90 0" sky-optimize></a-sky>
 
         <a-sphere id="tour-highlight" 
-                  radius="4000" 
-                  material="shader: smooth-highlight; angle: 30; feather: 25; opacity: 0.75; side: back; transparent: true;"
+                  radius="100" 
+                  material="shader: smooth-highlight; angle: 45; feather: 20; opacity: 0.80; side: back; transparent: true;"
                   rotation="0 0 0">
         </a-sphere>
 
@@ -209,6 +201,7 @@
         <a-box position="0 0.6 2.5" width="5" height="1.2" depth="0.05" material="color: #a9d6e5; opacity: 0.3; transparent: true; roughness: 0.1"></a-box>
         <a-box position="-2.5 0.6 0" width="0.05" height="1.2" depth="5" material="color: #a9d6e5; opacity: 0.3; transparent: true; roughness: 0.1"></a-box>
         <a-box position="2.5 0.6 0" width="0.05" height="1.2" depth="5" material="color: #a9d6e5; opacity: 0.3; transparent: true; roughness: 0.1"></a-box>
+        
         <a-box position="0 1.2 -2.5" width="5" height="0.05" depth="0.07" color="#222"></a-box>
         <a-box position="0 1.2 2.5" width="5" height="0.05" depth="0.07" color="#222"></a-box>
         <a-box position="-2.5 1.2 0" width="0.07" height="0.05" depth="5" color="#222"></a-box>
@@ -217,47 +210,26 @@
         <a-cylinder id="podest" position="0 0.5 0" radius="0.25" height="1" color="#eceff1" material="roughness: 0.5; metalness: 0.1"></a-cylinder>
         <a-gltf-model src="#statue" position="0 1.8 0" scale="1 1 1"></a-gltf-model>
 
-
         <a-entity id="ui-dashboard" position="0 0.2 0.7" rotation="-60 0 0">
-            
-            <a-plane class="clickable" 
-                     tour-control="targetAngle: 0"
-                     position="-0.45 0 0" width="0.4" height="0.12" 
-                     src="#rounded-mask" color="#111111" material="transparent: true; shader: flat;">
+            <a-plane class="clickable" tour-control="targetAngle: 0" position="-0.45 0 0" width="0.4" height="0.12" src="#rounded-mask" color="#111111" material="transparent: true; shader: flat;">
                 <a-text value="HIGHLIGHT A" align="center" width="1.2" color="#FFFFFF" font="kelsonsans" position="0 0 0.01"></a-text>
             </a-plane>
 
-            <a-plane class="clickable" 
-                     tour-control="targetAngle: 110"
-                     position="0 0 0" width="0.4" height="0.12" 
-                     src="#rounded-mask" color="#111111" material="transparent: true; shader: flat;">
+            <a-plane class="clickable" tour-control="targetAngle: 110" position="0 0 0" width="0.4" height="0.12" src="#rounded-mask" color="#111111" material="transparent: true; shader: flat;">
                 <a-text value="HIGHLIGHT B" align="center" width="1.2" color="#FFFFFF" font="kelsonsans" position="0 0 0.01"></a-text>
             </a-plane>
 
-            <a-plane class="clickable" 
-                     tour-control="targetAngle: -110"
-                     position="0.45 0 0" width="0.4" height="0.12" 
-                     src="#rounded-mask" color="#111111" material="transparent: true; shader: flat;">
+            <a-plane class="clickable" tour-control="targetAngle: -110" position="0.45 0 0" width="0.4" height="0.12" src="#rounded-mask" color="#111111" material="transparent: true; shader: flat;">
                 <a-text value="HIGHLIGHT C" align="center" width="1.2" color="#FFFFFF" font="kelsonsans" position="0 0 0.01"></a-text>
             </a-plane>
-
         </a-entity>
 
-
         <a-entity id="cameraRig" position="0 0 1.5" rotation="0 0 0" player-bounds>
-            
             <a-camera id="head" look-controls wasd-controls="acceleration: 20; fly: false;">
                 <a-entity cursor="rayOrigin: mouse" raycaster="objects: .clickable"></a-entity>
             </a-camera>
-
             <a-entity id="leftHand" oculus-touch-controls="hand: left" joystick-move></a-entity>
-
-            <a-entity id="rightHand" 
-                      laser-controls="hand: right" 
-                      raycaster="objects: .clickable; far: 10; interval: 50"
-                      line="color: #4a90e2; opacity: 0.7">
-            </a-entity>
-
+            <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; far: 10; interval: 50" line="color: #4a90e2; opacity: 0.7"></a-entity>
         </a-entity>
 
     </a-scene>
