@@ -2,10 +2,8 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>A-Frame Quest 2 Volle Steuerung</title>
-    <!-- A-Frame Basis-Bibliothek -->
+    <title>A-Frame: Plattform, Modell & Quest 2 Flug-Steuerung</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <!-- Stabile Version der Bewegungskomponenten für WASD und Gamepads -->
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
   </head>
   <body>
@@ -14,22 +12,16 @@
         <a-asset-item id="myModel" src="model.glb"></a-asset-item>
       </a-assets>
 
-      <!-- DAS STEUERUNGS-RIG -->
-      <!-- movement-controls aktiviert automatisch WASD auf dem PC und den LINKEN Stick auf der Quest 2 -->
-      <a-entity id="rig" movement-controls="controls: keyboard, gamepad; speed: 0.15">
+      <a-entity id="rig" position="0 1.6 0" movement-controls="controls: keyboard, gamepad; speed: 0.15; fly: true">
         
-        <!-- Kamera für die Kopfrotation (Look-Controls für PC-Maus und VR-Headset) -->
-        <a-entity camera position="0 1.6 0" look-controls></a-entity>
+        <a-entity camera look-controls="pointerLockEnabled: true"></a-entity>
 
-        <!-- Linker VR-Controller (Wird für die Fortbewegung vom Rig registriert) -->
         <a-entity oculus-touch-controls="hand: left"></a-entity>
 
-        <!-- Rechter VR-Controller (Erhält unser Custom-Skript für das Drehen per Stick) -->
         <a-entity oculus-touch-controls="hand: right" snap-turn></a-entity>
         
       </a-entity>
 
-      <!-- DIE PLATTFORM (5 Meter Durchmesser, 1mm hoch) -->
       <a-cylinder 
         position="0 0.0005 0" 
         radius="2.5" 
@@ -37,7 +29,6 @@
         color="#7BC8A4">
       </a-cylinder>
 
-      <!-- UNSICHTBARER GRENZCOLLIDER AM RAND -->
       <a-cylinder 
         position="0 1 0" 
         radius="2.5" 
@@ -47,7 +38,6 @@
         material="visible: false">
       </a-cylinder>
 
-      <!-- DAS MODELL IN DER MITTE -->
       <a-gltf-model 
         src="#myModel" 
         position="-3.042 0.001 -1.009" 
@@ -58,29 +48,28 @@
       <a-sky color="#ECECEC"></a-sky>
     </a-scene>
 
-    <!-- SKRIPT FÜR DAS RUCKARTIGE DREHEN AM RECHTEN STICK (QUEST 2) -->
     <script>
       AFRAME.registerComponent('snap-turn', {
         init: function () {
           // Wir lauschen auf Achsenbewegungen des Controllers
           this.el.addEventListener('axismove', (evt) => {
-            // axis[2] ist bei der Quest 2 der horizontale Wert des RECHTEN Daumensticks
+            // axis[2] ist bei der Quest 2 der horizontale Wert (links/rechts) des RECHTEN Daumensticks
             let joystickX = evt.detail.axis[2]; 
             let rig = document.querySelector('#rig');
             
-            // Wenn der Stick stark nach links oder rechts gedrückt wird (> 0.7) und wir noch nicht gedreht haben
+            // Wenn der Stick stark nach links oder rechts gedrückt wird (> 0.7) und die Sperre nicht aktiv ist
             if (!this.turned && Math.abs(joystickX) > 0.7) {
               let rotation = rig.getAttribute('rotation') || {x: 0, y: 0, z: 0};
               
-              // Stick nach rechts gedrückt -> drehe -45 Grad. Nach links -> +45 Grad.
+              // Stick nach rechts -> drehe -45 Grad. Stick nach links -> drehe +45 Grad.
               rotation.y += joystickX > 0 ? -45 : 45;
               rig.setAttribute('rotation', rotation);
               
-              // Sperre aktivieren, damit man sich nicht unendlich schnell im Kreis dreht
+              // Sperre aktivieren, damit es bei gehaltenem Stick nicht unendlich schnell dreht
               this.turned = true; 
             }
             
-            // Erst wenn der Stick wieder fast in der Mitte ist (< 0.2), erlauben wir die nächste Drehung
+            // Erst wenn der Stick wieder fast in der Mitte ist (< 0.2), wird die Sperre aufgehoben
             if (Math.abs(joystickX) < 0.2) {
               this.turned = false;
             }
