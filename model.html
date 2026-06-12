@@ -2,10 +2,8 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>A-Frame mit Quest 2 Steuerung</title>
-    <!-- A-Frame Basis-Bibliothek -->
+    <title>A-Frame Quest 2 Fix</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <!-- A-Frame Extras für die Bewegungskomponenten (WASD + Controller) -->
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
   </head>
   <body>
@@ -14,23 +12,42 @@
         <a-asset-item id="myModel" src="model.glb"></a-asset-item>
       </a-assets>
 
-      <!-- Das Rig umschließt die Kamera und die Controller -->
-      <a-entity id="rig" movement-controls="controls: gamepad, keyboard; speed: 0.15;">
-        <!-- Kamera für PC (WASD + Maus) und VR-Headset -->
+      <a-entity id="rig" movement-controls="controls: keyboard, gamepad; speed: 0.15">
         <a-entity camera position="0 1.6 0" look-controls></a-entity>
 
-        <!-- Linker Controller: Steuert das Laufen über den analogen Stick -->
         <a-entity oculus-touch-controls="hand: left"></a-entity>
 
-        <!-- Rechter Controller: Aktiviert das ruckartige Drehen (Snap Turn) -->
-        <a-entity oculus-touch-controls="hand: right" snap-turn-controls="reference: #rig; turnAngle: 45"></a-entity>
+        <a-entity oculus-touch-controls="hand: right" snap-turn></a-entity>
       </a-entity>
 
-      <!-- Dein 3D-Modell in der Mitte -->
       <a-gltf-model src="#myModel" position="0 1.6 -3" scale="1 1 1"></a-gltf-model>
-
-      <!-- Hintergrundfarbe -->
+      
       <a-sky color="#ECECEC"></a-sky>
     </a-scene>
+
+    <script>
+      AFRAME.registerComponent('snap-turn', {
+        init: function () {
+          this.el.addEventListener('axismove', (evt) => {
+            // Rechter Stick: Achse 2 ist horizontal (links/rechts)
+            let joystickX = evt.detail.axis[2]; 
+            let rig = document.querySelector('#rig');
+            
+            if (!this.turned && Math.abs(joystickX) > 0.7) {
+              let rotation = rig.getAttribute('rotation') || {x: 0, y: 0, z: 0};
+              // Drehe um 45 Grad nach links oder rechts
+              rotation.y += joystickX > 0 ? -45 : 45;
+              rig.setAttribute('rotation', rotation);
+              this.turned = true; // Sperre, damit es nicht durchrast
+            }
+            
+            // Stick wieder in der Mitte? Dann zurücksetzen
+            if (Math.abs(joystickX) < 0.2) {
+              this.turned = false;
+            }
+          });
+        }
+      });
+    </script>
   </body>
 </html>
