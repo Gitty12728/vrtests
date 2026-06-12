@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8">
+    <title>Dunkler Raum mit Spotlight und GLB-Modell</title>
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  </head>
+  <body>
+
+    <a-scene light="defaultLightsEnabled: false" background="color: #050505">
+      
+      <a-assets>
+        <a-asset-item id="frau-modell" src="model.glb"></a-asset-item>
+      </a-assets>
+
+      <a-light type="ambient" color="#111" intensity="0.2"></a-light>
+
+      <a-light type="spot" 
+               position="0 4 0" 
+               rotation="-90 0 0" 
+               intensity="2" 
+               angle="30" 
+               penumbra="0.5" 
+               castShadow="true" 
+               color="#fff">
+      </a-light>
+
+      <a-plane position="0 0 0" 
+               rotation="-90 0 0" 
+               width="50" 
+               height="50" 
+               color="#111" 
+               roughness="0.8"
+               shadow="receive: true">
+      </a-plane>
+
+      <a-cylinder id="podest"
+                  position="0 0.5 0" 
+                  radius="0.5" 
+                  height="1" 
+                  color="#222" 
+                  roughness="0.5"
+                  shadow="cast: true; receive: true">
+      </a-cylinder>
+
+      <a-entity gltf-model="#frau-modell" 
+                position="0 1.0 0" 
+                scale="1 1 1"
+                shadow="cast: true; receive: true">
+      </a-entity>
+
+      <a-entity position="0 1.6 3">
+        <a-camera look-controls wasd-controls></a-camera>
+      </a-entity>
+
+    </a-scene>
+
+  </body>
+</html>
