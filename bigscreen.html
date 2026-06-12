@@ -11,7 +11,209 @@
             schema: {
                 angle: {type: 'number', default: 50},       // Etwas breiterer Ausschnitt (50°), damit man ihn sofort sieht
                 feather: {type: 'number', default: 5},       // Weiche Übergangskante
-                color: {type: 'color', default: '#000000'},  // Absolute Dunkelheit drumherum
+                color: {type: 'color', default: '#000000'},  // Absolute Dunkelheit drumherum<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>VR Tour - Ultimativer Matrjoschka & Interface Fix</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+    <script>
+        // 1. ORANGENSCHNITTEN-SHADER (Basiert auf lokalen 3D-Vektoren, rotiert perfekt mit!)
+        AFRAME.registerShader('orange-slice-mask', {
+            schema: {
+                angle: {type: 'number', default: 45},       // Breite des Sichtfensters in Grad
+                feather: {type: 'number', default: 5},       // Weiche Übergangskante
+                color: {type: 'color', default: '#000000'},  // Umgebungs-Dunkelheit
+                opacity: {type: 'number', default: 0.92}     // Kontraststärke
+            },
+            vertexShader: `
+                varying vec3 vLocalPos;
+                void main() {
+                    vLocalPos = position;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                varying vec3 vLocalPos;
+                uniform vec3 color;
+                uniform float opacity;
+                uniform float angle;
+                uniform float feather;
+                
+                void main() {
+                    vec3 dir = normalize(vLocalPos);
+                    // Berechnet den exakten horizontalen Winkel auf der XZ-Ebene
+                    float angleDeg = degrees(atan(dir.x, -dir.z));
+                    float diff = abs(angleDeg);
+                    
+                    float halfAngle = angle / 2.0;
+                    // Erzeugt das scharfkantige Sichtfenster ("Orangenschnitte")
+                    float mask = smoothstep(halfAngle, halfAngle + feather, diff);
+                    gl_FragColor = vec4(color, mask * opacity);
+                }
+            `
+        });
+
+        // 2. VR-STEUERUNG: DAUMENSTICK
+        AFRAME.registerComponent('joystick-move', {
+            schema: { rig: {type: 'selector', default: '#cameraRig'}, speed: {type: 'number', default: 2.0} },
+            init: function () {
+                this.moveX = 0; this.moveY = 0;
+                this.el.addEventListener('thumbstickmoved', (evt) => { this.moveX = evt.detail.x; this.moveY = evt.detail.y; });
+            },
+            tick: function (time, delta) {
+                if (Math.abs(this.moveX) < 0.15 && Math.abs(this.moveY) < 0.15) return;
+                const rig = this.data.rig.object3D; const cam = document.querySelector('#head').object3D;
+                const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion); forward.y = 0; forward.normalize();
+                const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion); right.y = 0; right.normalize();
+                const speedFactor = (delta / 1000) * this.data.speed;
+                rig.position.addScaledVector(forward, -this.moveY * speedFactor); rig.position.addScaledVector(right, this.moveX * speedFactor);
+            }
+        });
+
+        // 3. COLLIDER: PLATTFORM-GRENZEN
+        AFRAME.registerComponent('player-bounds', {
+            init: function () { this.head = document.querySelector('#head').object3D; this.rig = this.el.object3D; this.worldPos = new THREE.Vector3(); },
+            tick: function () {
+                if (!this.head) return; this.head.getWorldPosition(this.worldPos); const limit = 2.2;
+                if (this.worldPos.x > limit) this.rig.position.x -= (this.worldPos.x - limit); else if (this.worldPos.x < -limit) this.rig.position.x += (-limit - this.worldPos.x);
+                if (this.worldPos.z > limit) this.rig.position.z -= (this.worldPos.z - limit); else if (this.worldPos.z < -limit) this.rig.position.z += (-limit - this.worldPos.z);
+                this.head.getWorldPosition(this.worldPos); const minPlatformDist = 0.55; const dist = Math.sqrt(this.worldPos.x * this.worldPos.x + this.worldPos.z * this.worldPos.z);
+                if (dist < minPlatformDist && dist > 0.01) { const push = (minPlatformDist - dist) / dist; this.rig.position.x += this.worldPos.x * push; this.rig.position.z += this.worldPos.z * push; }
+            }
+        });
+
+        // 4. GENERIERT BUTTON-GEOMETRIEN
+        AFRAME.registerComponent('rounded-button', {
+            schema: { width: {type: 'number', default: 0.35}, height: {type: 'number', default: 0.11}, radius: {type: 'number', default: 0.025}, color: {type: 'color', default: '#111111'} },
+            init: function () {
+                const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 128; const ctx = canvas.getContext('2d');
+                ctx.fillStyle = this.data.color; ctx.beginPath(); const scale = canvas.height / this.data.height;
+                ctx.roundRect(0, 0, canvas.width, canvas.height, this.data.radius * scale); ctx.fill();
+                this.el.setAttribute('geometry', { primitive: 'plane', width: this.data.width, height: this.data.height });
+                const texture = new THREE.CanvasTexture(canvas); const mesh = this.el.getObject3D('mesh');
+                if (mesh) { mesh.material.map = texture; mesh.material.transparent = true; mesh.material.shader = 'flat'; mesh.material.needsUpdate = true; }
+            }
+        });
+
+        // 5. MATHEMATISCHE LERP-ENGINE (Verhindert das Übereinander-Poppen und Blockieren komplett)
+        AFRAME.registerComponent('tour-control', {
+            schema: { targetAngle: {type: 'number', default: 0} },
+            init: function () {
+                // Animations-Zustände isolieren
+                this.targetScale = 1.0;
+                this.targetZ = 0;
+                this.currentScale = 1.0;
+                this.currentZ = 0;
+
+                this.el.addEventListener('mouseenter', () => {
+                    this.el.setAttribute('rounded-button', 'color', '#252525');
+                    this.targetScale = 1.12; // 12% größer beim Hovern
+                    this.targetZ = 0.05;     // 5cm anheben
+                });
+                
+                this.el.addEventListener('mouseleave', () => {
+                    this.el.setAttribute('rounded-button', 'color', '#111111');
+                    this.targetScale = 1.0;
+                    this.targetZ = 0;
+                });
+
+                this.el.addEventListener('mousedown', () => {
+                    this.targetScale = 0.92; // Visuelles Klick-Feedback (Eindrücken)
+                });
+
+                this.el.addEventListener('mouseup', () => {
+                    this.targetScale = 1.12;
+                });
+                
+                this.el.addEventListener('click', () => {
+                    const highlight = document.querySelector('#tour-highlight');
+                    highlight.removeAttribute('animation');
+                    highlight.setAttribute('animation', {
+                        property: 'rotation',
+                        to: `0 ${this.data.targetAngle} 0`,
+                        dur: 1300,
+                        easing: 'easeInOutCubic'
+                    });
+                });
+            },
+            tick: function () {
+                // Ultra-smoothe Frame-Interpellation (Kann sich niemals im Speicher verfangen)
+                this.currentScale += (this.targetScale - this.currentScale) * 0.2;
+                this.currentZ += (this.targetZ - this.currentZ) * 0.2;
+                
+                this.el.object3D.scale.set(this.currentScale, this.currentScale, this.currentScale);
+                this.el.object3D.position.z = this.currentZ;
+            }
+        });
+    </script>
+</head>
+<body>
+
+    <a-scene renderer="antialias: true; colorManagement: true; precision: mediump;">
+        
+        <a-assets>
+            <img id="panorama" src="360.jpg">
+            <audio id="ambient-wind" src="wind.mp3" preload="auto"></audio>
+            <a-asset-item id="statue" src="statue.glb"></a-asset-item>
+        </a-assets>
+
+        <a-sound src="#ambient-wind" autoplay="true" loop="true" volume="0.5" positional="false"></a-sound>
+
+        <a-sphere id="sky-panorama" radius="100" material="shader: flat; src: #panorama; side: back;" rotation="0 -90 0"></a-sphere>
+
+        <a-sphere id="tour-highlight" 
+                  radius="99" 
+                  material="shader: orange-slice-mask; angle: 45; feather: 5; opacity: 0.92; color: #000000; side: back; transparent: true; depthWrite: false;"
+                  rotation="0 0 0">
+        </a-sphere>
+
+        <a-entity light="type: ambient; intensity: 0.7;"></a-entity>
+        <a-entity light="type: directional; intensity: 0.6;" position="1 4 2"></a-entity>
+
+        <a-box id="floor" position="0 -0.05 0" width="5" height="0.1" depth="5" color="#222"></a-box>
+        <a-box position="0 0.6 -2.5" width="5" height="1.2" depth="0.04" material="color: #a9d6e5; opacity: 0.25; transparent: true;"></a-box>
+        <a-box position="0 0.6 2.5" width="5" height="1.2" depth="0.04" material="color: #a9d6e5; opacity: 0.25; transparent: true;"></a-box>
+        <a-box position="-2.5 0.6 0" width="0.04" height="1.2" depth="5" material="color: #a9d6e5; opacity: 0.25; transparent: true;"></a-box>
+        <a-box position="2.5 0.6 0" width="0.04" height="1.2" depth="5" material="color: #a9d6e5; opacity: 0.25; transparent: true;"></a-box>
+        
+        <a-cylinder id="podest" position="0 0.5 0" radius="0.23" height="1" color="#dddddd"></a-cylinder>
+        <a-gltf-model src="#statue" position="0 1.8 0"></a-gltf-model>
+
+        <a-entity id="ui-floor-dashboard" position="0 0.02 0.75" rotation="-75 0 0">
+            
+            <a-entity position="-0.45 0 0">
+                <a-entity class="clickable" tour-control="targetAngle: 0" rounded-button>
+                    <a-text value="SCHNITTE A" align="center" width="1.0" color="#FFF" font="kelsonsans" position="0 0 0.01"></a-text>
+                </a-entity>
+            </a-entity>
+
+            <a-entity position="0 0 0">
+                <a-entity class="clickable" tour-control="targetAngle: -60" rounded-button>
+                    <a-text value="SCHNITTE B" align="center" width="1.0" color="#FFF" font="kelsonsans" position="0 0 0.01"></a-text>
+                </a-entity>
+            </a-entity>
+
+            <a-entity position="0.45 0 0">
+                <a-entity class="clickable" tour-control="targetAngle: 60" rounded-button>
+                    <a-text value="SCHNITTE C" align="center" width="1.0" color="#FFF" font="kelsonsans" position="0 0 0.01"></a-text>
+                </a-entity>
+            </a-entity>
+
+        </a-entity>
+
+        <a-entity id="cameraRig" position="0 0 1.4" player-bounds>
+            <a-camera id="head" look-controls wasd-controls="acceleration: 18;">
+                <a-entity cursor="rayOrigin: mouse" raycaster="objects: .clickable"></a-entity>
+            </a-camera>
+            <a-entity id="leftHand" oculus-touch-controls="hand: left" joystick-move></a-entity>
+            <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; far: 6;" line="color: #4a90e2; opacity: 0.85"></a-entity>
+        </a-entity>
+
+    </a-scene>
+</body>
+</html>
                 opacity: {type: 'number', default: 0.92}     // Starke Abdunklung für maximalen Kontrast
             },
             vertexShader: `
