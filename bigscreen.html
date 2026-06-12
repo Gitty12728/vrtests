@@ -2,17 +2,17 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>VR Tour - Das Orangenschnitte-Highlight (Vollversion)</title>
+    <title>VR Tour - Perfekte Orangenschnitte mit Dynamic UI</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
     <script>
-        // 1. SHADER: SCHNEIDET EINE PERFECTE "ORANGENSCHNITTE" FREI
+        // 1. SHADER: ORANGENSCHNITTE (Exakt nach image_76b5fc.png)
         AFRAME.registerShader('orange-slice-mask', {
             schema: {
-                angle: {type: 'number', default: 35},       // Breite der Schnitte in Grad
-                feather: {type: 'number', default: 4},       // Weiche Kanten
-                color: {type: 'color', default: '#020202'},  // Dunkelheit drumherum
-                opacity: {type: 'number', default: 0.88}     // Stärke der Abdunklung
+                angle: {type: 'number', default: 35},
+                feather: {type: 'number', default: 4},
+                color: {type: 'color', default: '#020202'},
+                opacity: {type: 'number', default: 0.88}
             },
             vertexShader: `
                 varying vec3 vLocalPosition;
@@ -34,14 +34,13 @@
                     float degAbs = degrees(abs(azimuth));
                     float halfAngle = angle / 2.0;
                     
-                    // 0.0 innerhalb der Orangenschnitte (hell), springt außerhalb auf 1.0 (dunkel)
                     float mask = smoothstep(halfAngle, halfAngle + feather, degAbs);
                     gl_FragColor = vec4(color, mask * opacity);
                 }
             `
         });
 
-        // 2. STEUERUNG: VR-JOYSTICK LOCOMOTION (Daumenstick)
+        // 2. VR-STEUERUNG: DAUMENSTICK-LOCOMOTION
         AFRAME.registerComponent('joystick-move', {
             schema: {
                 rig: {type: 'selector', default: '#cameraRig'},
@@ -50,7 +49,6 @@
             init: function () {
                 this.moveX = 0;
                 this.moveY = 0;
-                // Horcht auf die Bewegung des VR-Daumensticks
                 this.el.addEventListener('thumbstickmoved', (evt) => {
                     this.moveX = evt.detail.x;
                     this.moveY = evt.detail.y;
@@ -58,22 +56,15 @@
             },
             tick: function (time, delta) {
                 if (Math.abs(this.moveX) < 0.15 && Math.abs(this.moveY) < 0.15) return;
-                
                 const rig = this.data.rig.object3D;
                 const cam = document.querySelector('#head').object3D;
                 
-                // Blickrichtungs-Vektoren für vorwärts/seitwärts Gehen ermitteln
                 const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
-                forward.y = 0;
-                forward.normalize();
-                
+                forward.y = 0; forward.normalize();
                 const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
-                right.y = 0;
-                right.normalize();
+                right.y = 0; right.normalize();
                 
                 const speedFactor = (delta / 1000) * this.data.speed;
-                
-                // Rig passend zur Stick-Richtung bewegen
                 rig.position.addScaledVector(forward, -this.moveY * speedFactor);
                 rig.position.addScaledVector(right, this.moveX * speedFactor);
             }
@@ -89,7 +80,7 @@
             tick: function () {
                 if (!this.head) return;
                 this.head.getWorldPosition(this.worldPos);
-                const limit = 2.2; // Äußere Plattformgrenze
+                const limit = 2.2;
                 
                 if (this.worldPos.x > limit) this.rig.position.x -= (this.worldPos.x - limit);
                 else if (this.worldPos.x < -limit) this.rig.position.x += (-limit - this.worldPos.x);
@@ -97,7 +88,6 @@
                 if (this.worldPos.z > limit) this.rig.position.z -= (this.worldPos.z - limit);
                 else if (this.worldPos.z < -limit) this.rig.position.z += (-limit - this.worldPos.z);
                 
-                // Innerer Podest-Schutzraum
                 this.head.getWorldPosition(this.worldPos);
                 const minPlatformDist = 0.55;
                 const dist = Math.sqrt(this.worldPos.x * this.worldPos.x + this.worldPos.z * this.worldPos.z);
@@ -109,7 +99,7 @@
             }
         });
 
-        // 4. UI: GENERIERT ABGERUNDETE BUTTONS PER GRAPHIKKARTE
+        // 4. UI: ABGERUNDETE BUTTON-GEOMETRIE
         AFRAME.registerComponent('rounded-button', {
             schema: {
                 width: {type: 'number', default: 0.35},
@@ -139,30 +129,45 @@
             }
         });
 
-        // 5. INTERAKTION: ROTATION DER SCHNITTE BEI KLICK
+        // 5. NATIVES INTERAKTIONS- & ANIMATIONS-MANAGEMENT
         AFRAME.registerComponent('tour-control', {
             schema: { targetAngle: {type: 'number', default: 0} },
             init: function () {
+                // HOVER FEEDBACK: Größer werden (Scale)
+                this.el.setAttribute('animation__hoverScaleIn', {
+                    property: 'scale', to: '1.08 1.08 1.08', dur: 150, easing: 'easeOutQuad', startEvents: 'mouseenter'
+                });
+                this.el.setAttribute('animation__hoverScaleOut', {
+                    property: 'scale', to: '1 1 1', dur: 150, easing: 'easeOutQuad', startEvents: 'mouseleave'
+                });
+
+                // HOVER FEEDBACK: Dreidimensional abheben / nach oben erheben (Z-Achse)
+                this.el.setAttribute('animation__hoverZIn', {
+                    property: 'position.z', to: 0.04, dur: 150, easing: 'easeOutQuad', startEvents: 'mouseenter'
+                });
+                this.el.setAttribute('animation__hoverZOut', {
+                    property: 'position.z', to: 0, dur: 150, easing: 'easeOutQuad', startEvents: 'mouseleave'
+                });
+
+                // KLICK-ANALYSE: Drückt sich kurz rein und federt unendlich oft sauber zurück (loop: 2)
+                this.el.setAttribute('animation__clickPop', {
+                    property: 'scale', from: '1.08 1.08 1.08', to: '0.94 0.94 0.94', dur: 80, dir: 'alternate', loop: 2, startEvents: 'click'
+                });
+
+                // Farbwechsel-Effekt im Canvas spiegeln
+                this.el.addEventListener('mouseenter', () => { this.el.setAttribute('rounded-button', 'color', '#252525'); });
+                this.el.addEventListener('mouseleave', () => { this.el.setAttribute('rounded-button', 'color', '#111111'); });
+
+                // Drehung der Orangenschnitte am Horizont auslösen
                 this.el.addEventListener('click', () => {
                     const highlight = document.querySelector('#tour-highlight');
-                    const currentRot = highlight.getAttribute('rotation') || {x: 0, y: 0, z: 0};
-                    
-                    highlight.removeAttribute('animation');
                     highlight.setAttribute('animation', {
                         property: 'rotation',
-                        from: `${currentRot.x} ${currentRot.y} ${currentRot.z}`,
                         to: `0 ${this.data.targetAngle} 0`,
                         dur: 1400,
                         easing: 'easeInOutCubic'
                     });
-
-                    this.el.setAttribute('animation__scale', {
-                        property: 'scale', from: '1 1 1', to: '0.94 0.94 0.94', dur: 100, dir: 'alternate', loop: 1
-                    });
                 });
-
-                this.el.addEventListener('mouseenter', () => { this.el.setAttribute('rounded-button', 'color', '#252525'); });
-                this.el.addEventListener('mouseleave', () => { this.el.setAttribute('rounded-button', 'color', '#111111'); });
             }
         });
     </script>
@@ -191,7 +196,6 @@
         <a-entity light="type: directional; intensity: 0.6;" position="1 4 2"></a-entity>
 
         <a-box id="floor" position="0 -0.05 0" width="5" height="0.1" depth="5" color="#222" material="roughness: 0.85"></a-box>
-        
         <a-box position="0 0.6 -2.5" width="5" height="1.2" depth="0.04" material="color: #a9d6e5; opacity: 0.25; transparent: true;"></a-box>
         <a-box position="0 0.6 2.5" width="5" height="1.2" depth="0.04" material="color: #a9d6e5; opacity: 0.25; transparent: true;"></a-box>
         <a-box position="-2.5 0.6 0" width="0.04" height="1.2" depth="5" material="color: #a9d6e5; opacity: 0.25; transparent: true;"></a-box>
@@ -205,6 +209,7 @@
         <a-gltf-model src="#statue" position="0 1.8 0"></a-gltf-model>
 
         <a-entity id="ui-floor-dashboard" position="0 0.02 0.75" rotation="-75 0 0">
+            
             <a-entity class="clickable" tour-control="targetAngle: 0" rounded-button position="-0.4 0 0">
                 <a-text value="SCHNITTE A" align="center" width="1.0" color="#FFF" font="kelsonsans" position="0 0 0.01"></a-text>
             </a-entity>
@@ -216,6 +221,7 @@
             <a-entity class="clickable" tour-control="targetAngle: 55" rounded-button position="0.4 0 0">
                 <a-text value="SCHNITTE C" align="center" width="1.0" color="#FFF" font="kelsonsans" position="0 0 0.01"></a-text>
             </a-entity>
+
         </a-entity>
 
         <a-entity id="cameraRig" position="0 0 1.4" player-bounds>
