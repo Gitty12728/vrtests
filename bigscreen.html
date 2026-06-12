@@ -12,7 +12,135 @@
             init: function () {
                 this.isActive = false;
                 this.el.addEventListener('thumbstickmoved', (evt) => {
-                    const y = evt.detail.y; // -1 ist ganz vorne, 1 ist ganz hinten
+                    const y = evt.detail.y; // -1 ist ganz vorne, 1 ist ganz hinten<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Meine VR Plattform - High Quality</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-teleport-component@0.3.11/dist/aframe-teleport-component.min.js"></script>
+
+    <script>
+        // ANTI-FLIMMERN-KOMPONENTE FÜR DAS PANORAMA
+        AFRAME.registerComponent('sky-optimize', {
+            init: function () {
+                this.el.addEventListener('materialtextureloaded', () => {
+                    const mesh = this.el.getObject3D('mesh');
+                    if (mesh && mesh.material && mesh.material.map) {
+                        const texture = mesh.material.map;
+                        texture.minFilter = THREE.LinearMipmapLinearFilter;
+                        texture.magFilter = THREE.LinearFilter;
+                        const renderer = this.el.sceneEl.renderer;
+                        if (renderer && renderer.capabilities) {
+                            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                        }
+                        texture.needsUpdate = true;
+                    }
+                });
+            }
+        });
+
+        // Linker Stick: Beamen (Bigscreen Style)
+        AFRAME.registerComponent('joystick-teleport', {
+            init: function () {
+                this.isActive = false;
+                this.el.addEventListener('thumbstickmoved', (evt) => {
+                    const y = evt.detail.y;
+                    if (y < -0.6 && !this.isActive) {
+                        this.isActive = true;
+                        this.el.emit('startteleport');
+                    } 
+                    else if (y > -0.2 && this.isActive) {
+                        this.isActive = false;
+                        this.el.emit('endteleport');
+                    }
+                });
+            }
+        });
+
+        // Rechter Stick: Snap Turn (Ruckartiges Drehen gegen Übelkeit)
+        AFRAME.registerComponent('joystick-snap-turn', {
+            schema: {
+                rig: {type: 'selector', default: '#cameraRig'},
+                deg: {type: 'number', default: 45}
+            },
+            init: function () {
+                this.canTurn = true;
+                this.el.addEventListener('thumbstickmoved', (evt) => {
+                    const x = evt.detail.x;
+                    if (Math.abs(x) < 0.4) {
+                        this.canTurn = true;
+                        return;
+                    }
+                    if (this.canTurn) {
+                        const rig = this.data.rig;
+                        let rotation = rig.getAttribute('rotation') || {x: 0, y: 0, z: 0};
+                        if (x > 0.6) {
+                            rotation.y -= this.data.deg;
+                            rig.setAttribute('rotation', rotation);
+                            this.canTurn = false;
+                        } else if (x < -0.6) {
+                            rotation.y += this.data.deg;
+                            rig.setAttribute('rotation', rotation);
+                            this.canTurn = false;
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</head>
+<body>
+
+    <a-scene renderer="antialias: true; colorManagement: true; precision: highp; foveationLevel: 0;">
+        
+        <a-assets timeout="5000">
+            <img id="panorama" src="360.jpg">
+            <audio id="ambient-wind" src="wind.mp3" preload="auto"></audio>
+            <a-asset-item id="statue" src="statue.glb"></a-asset-item>
+        </a-assets>
+
+        <a-sky src="#panorama" rotation="0 -90 0" sky-optimize></a-sky>
+
+        <a-sound src="#ambient-wind" autoplay="true" loop="true" volume="0.5" position="0 2 0"></a-sound>
+
+        <a-entity light="type: ambient; intensity: 0.7;"></a-entity>
+        <a-entity light="type: directional; intensity: 0.6;" position="1 4 2"></a-entity>
+
+        <a-box id="floor" class="walkable" position="0 -0.05 0" width="5" height="0.1" depth="5" color="#333" material="roughness: 0.8"></a-box>
+
+        <a-box position="0 0.6 -2.5" width="5" height="1.2" depth="0.05" material="color: #a9d6e5; opacity: 0.3; transparent: true; roughness: 0.1"></a-box>
+        <a-box position="0 0.6 2.5" width="5" height="1.2" depth="0.05" material="color: #a9d6e5; opacity: 0.3; transparent: true; roughness: 0.1"></a-box>
+        <a-box position="-2.5 0.6 0" width="0.05" height="1.2" depth="5" material="color: #a9d6e5; opacity: 0.3; transparent: true; roughness: 0.1"></a-box>
+        <a-box position="2.5 0.6 0" width="0.05" height="1.2" depth="5" material="color: #a9d6e5; opacity: 0.3; transparent: true; roughness: 0.1"></a-box>
+
+        <a-box position="0 1.2 -2.5" width="5" height="0.05" depth="0.07" color="#222"></a-box>
+        <a-box position="0 1.2 2.5" width="5" height="0.05" depth="0.07" color="#222"></a-box>
+        <a-box position="-2.5 1.2 0" width="0.07" height="0.05" depth="5" color="#222"></a-box>
+        <a-box position="2.5 1.2 0" width="0.07" height="0.05" depth="5" color="#222"></a-box>
+
+        <a-gltf-model src="#statue" position="0 0 0" scale="1 1 1"></a-gltf-model>
+
+        <a-entity id="cameraRig" position="0 0 1.5" rotation="0 0 0">
+            <a-camera id="head" look-controls wasd-controls="enabled: false"></a-camera>
+
+            <a-entity id="leftHand" 
+                      oculus-touch-controls="hand: left"
+                      joystick-teleport
+                      teleport-controls="cameraRig: #cameraRig; teleportOrigin: #head; startEvents: startteleport; endEvents: endteleport; type: parabolic; collisionEntities: .walkable; curveHitColor: #00ffcc;">
+            </a-entity>
+
+            <a-entity id="rightHand" 
+                      oculus-touch-controls="hand: right"
+                      laser-controls="hand: right"
+                      joystick-snap-turn="rig: #cameraRig; deg: 45"
+                      raycaster="objects: .clickable; far: 20; showLine: true;">
+            </a-entity>
+        </a-entity>
+
+    </a-scene>
+</body>
+</html>
                     
                     if (y < -0.6 && !this.isActive) {
                         this.isActive = true;
