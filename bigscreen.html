@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Meine VR Plattform - Smooth Locomotion Edition</title>
+    <title>Meine VR Plattform - PC & Quest 2 Edition</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
     <script>
@@ -25,50 +25,44 @@
             }
         });
 
-        // NEU: FLÜSSIGE JOYSTICK-BEWEGUNG (WASD-STYLE)
+        // JOYSTICK-LAUFEN (WASD-STYLE FÜR QUEST 2 LINKS)
         AFRAME.registerComponent('joystick-move', {
             schema: {
                 rig: {type: 'selector', default: '#cameraRig'},
-                speed: {type: 'number', default: 2.5} // Geschwindigkeit in Metern pro Sekunde
+                speed: {type: 'number', default: 2.0}
             },
             init: function () {
                 this.moveX = 0;
                 this.moveY = 0;
-                // Lauscht auf die Bewegung des Joysticks
                 this.el.addEventListener('thumbstickmoved', (evt) => {
-                    this.moveX = evt.detail.x; // Links / Rechts
-                    this.moveY = evt.detail.y; // Vor / Zurück
+                    this.moveX = evt.detail.x;
+                    this.moveY = evt.detail.y;
                 });
             },
             tick: function (time, delta) {
-                // Deadzone, damit es nicht von alleine driftet
                 if (Math.abs(this.moveX) < 0.15 && Math.abs(this.moveY) < 0.15) return;
 
                 const rig = this.data.rig.object3D;
                 const cam = document.querySelector('#head').object3D;
                 
-                // Vorwärts-Vektor aus der Blickrichtung der Kamera berechnen
                 const forward = new THREE.Vector3(0, 0, -1);
                 forward.applyQuaternion(cam.quaternion);
-                forward.y = 0; // Verhindert, dass man in den Boden fliegt, wenn man nach unten guckt
+                forward.y = 0; 
                 forward.normalize();
 
-                // Seitwärts-Vektor berechnen
                 const right = new THREE.Vector3(1, 0, 0);
                 right.applyQuaternion(cam.quaternion);
                 right.y = 0;
                 right.normalize();
 
-                // Frame-unabhängige Schrittgeschwindigkeit berechnen
                 const speedFactor = (delta / 1000) * this.data.speed;
 
-                // Position des Spielers anpassen (-this.moveY, weil im 3D-Raum -Z "vorne" ist)
                 rig.position.addScaledVector(forward, -this.moveY * speedFactor);
                 rig.position.addScaledVector(right, this.moveX * speedFactor);
             }
         });
 
-        // Rechter Stick: Snap Turn (Blickwinkel ruckartig drehen)
+        // JOYSTICK SNAP-TURN (UMDREHEN FÜR QUEST 2 RECHTS)
         AFRAME.registerComponent('joystick-snap-turn', {
             schema: {
                 rig: {type: 'selector', default: '#cameraRig'},
@@ -102,7 +96,7 @@
 </head>
 <body>
 
-    <a-scene renderer="antialias: true; colorManagement: true; precision: highp; foveationLevel: 0;">
+    <a-scene renderer="antialias: true; colorManagement: true; precision: mediump; foveationLevel: 3;">
         
         <a-assets timeout="30000">
             <img id="panorama" src="360.jpg">
@@ -134,7 +128,8 @@
         <a-gltf-model src="#statue" position="0 1.8 0" scale="1 1 1"></a-gltf-model>
 
         <a-entity id="cameraRig" position="0 0 1.5" rotation="0 0 0">
-            <a-camera id="head" look-controls wasd-controls="enabled: false"></a-camera>
+            
+            <a-camera id="head" look-controls wasd-controls="acceleration: 20; fly: false;"></a-camera>
 
             <a-entity id="leftHand" 
                       oculus-touch-controls="hand: left"
