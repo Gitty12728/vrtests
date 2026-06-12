@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Meine VR Plattform</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-teleport-component@0.3.11/dist/aframe-teleport-component.min.js"></script>
+</head>
+<body>
+
+    <a-scene environment="preset: none" lighting="ambientOcclusion: true">
+        
+        <a-assets>
+            <img id="panorama" src="360.jpg">
+            <audio id="ambient-wind" src="Wind.mp3" preload="auto"></audio>
+        </a-assets>
+
+        <a-sky src="#panorama" rotation="0 -90 0"></a-sky>
+
+        <a-sound src="#ambient-wind" autoplay="true" loop="true" volume="0.5" position="0 2 0"></a-sound>
+
+        <a-entity light="type: ambient; intensity: 0.7;"></a-entity>
+        <a-entity light="type: directional; intensity: 0.6; castShadow: true" position="1 4 2"></a-entity>
+
+        <a-box id="floor" class="walkable" position="0 -0.05 0" width="5" height="0.1" depth="5" color="#333" material="roughness: 0.8"></a-box>
+
+        <a-box position="0 0.6 -2.5" width="5" height="1.2" depth="0.05" material="color: #a9d6e5; opacity: 0.3; transparent: true; roughness: 0.1"></a-box>
+        <a-box position="0 0.6 2.5" width="5" height="1.2" depth="0.05" material="color: #a9d6e5; opacity: 0.3; transparent: true; roughness: 0.1"></a-box>
+        <a-box position="-2.5 0.6 0" width="0.05" height="1.2" depth="5" material="color: #a9d6e5; opacity: 0.3; transparent: true; roughness: 0.1"></a-box>
+        <a-box position="2.5 0.6 0" width="0.05" height="1.2" depth="5" material="color: #a9d6e5; opacity: 0.3; transparent: true; roughness: 0.1"></a-box>
+
+        <a-box position="0 1.2 -2.5" width="5" height="0.05" depth="0.07" color="#222"></a-box>
+        <a-box position="0 1.2 2.5" width="5" height="0.05" depth="0.07" color="#222"></a-box>
+        <a-box position="-2.5 1.2 0" width="0.07" height="0.05" depth="5" color="#222"></a-box>
+        <a-box position="2.5 1.2 0" width="0.07" height="0.05" depth="5" color="#222"></a-box>
+
+
+        <a-entity id="cameraRig" position="0 0 0">
+            
+            <a-camera id="head" look-controls wasd-controls="enabled: false"></a-camera>
+
+            <a-entity id="leftHand" 
+                      oculus-touch-controls="hand: left"
+                      teleport-controls="cameraRig: #cameraRig; teleportOrigin: #head; button: thumbstick; type: parabolic; collisionEntities: .walkable; curveHitColor: #00ffcc;">
+            </a-entity>
+
+            <a-entity id="rightHand" 
+                      oculus-touch-controls="hand: right"
+                      laser-controls="hand: right"
+                      raycaster="objects: .clickable; far: 20; showLine: true;">
+            </a-entity>
+
+        </a-entity>
+
+    </a-scene>
+</body>
+</html>
