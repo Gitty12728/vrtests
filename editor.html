@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XML Block-Listen Manager</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        textarea {
+            font-family: 'Courier New', Courier, monospace;
+            height: 120px;
+            resize: vertical;
+        }
+        .btn {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn:hover { background-color: #218838; }
+        .btn-danger { background-color: #dc3545; }
+        .btn-danger:hover { background-color: #c82333; }
+        .btn-secondary { background-color: #007bff; margin-top: 15px;}
+        .btn-secondary:hover { background-color: #0069d9; }
+        
+        .block-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        .delete-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+        }
+        #jsonOutput {
+            height: 200px;
+            background-color: #1e1e1e;
+            color: #a9dc76;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>XML Block-Listen Manager</h2>
+    <p>Füge hier deine XML-Blöcke hinzu. Das Tool generiert daraus automatisch den passenden JSON-Code für deine <code>blocks.json</code>.</p>
+    
+    <hr>
+    
+    <!-- Liste der aktuellen Blöcke -->
+    <div id="blocksList"></div>
+    
+    <!-- Button um neuen leeren Block hinzuzufügen -->
+    <button class="btn" onclick="addNewBlockField()">+ Neuen Block hinzufügen</button>
+    
+    <hr>
+    
+    <!-- JSON Generierung -->
+    <button class="btn btn-secondary" onclick="generateJSON()">JSON-Code generieren</button>
+    
+    <div class="form-group" style="margin-top: 20px;">
+        <label for="jsonOutput">Generierter JSON-Inhalt (Kopieren und in <code>blocks.json</code> einfügen):</label>
+        <textarea id="jsonOutput" readonly placeholder="Klicke auf Generieren..."></textarea>
+    </div>
+</div>
+
+<script>
+// Start-Daten (Hier kannst du deine bestehenden Blöcke reinkopieren, falls du sie bearbeiten willst)
+let blocksData = [
+  {
+    "name": "Personen-Block",
+    "content": "<person>\n    <name>Max Mustermann</name>\n    <alter>30</alter>\n</person>"
+  },
+  {
+    "name": "Adress-Block",
+    "content": "<adresse>\n    <strasse>Musterstraße 1</strasse>\n    <stadt>Berlin</stadt>\n</adresse>"
+  }
+];
+
+// Rendert die Eingabefelder auf Basis der blocksData
+function renderBlocks() {
+    const listDiv = document.getElementById('blocksList');
+    listDiv.innerHTML = '';
+    
+    blocksData.forEach((block, index) => {
+        const card = document.createElement('div');
+        card.className = 'block-card';
+        card.innerHTML = `
+            <button class="btn btn-danger delete-btn" onclick="deleteBlock(${index})">Löschen</button>
+            <div class="form-group">
+                <label>Name des Blocks (für das Dropdown):</label>
+                <input type="text" class="block-name" value="${block.name}" onchange="updateData(${index}, 'name', this.value)">
+            </div>
+            <div class="form-group">
+                <label>XML-Inhalt (ganz normal schreiben):</label>
+                <textarea class="block-content" onchange="updateData(${index}, 'content', this.value)">${block.content}</textarea>
+            </div>
+        `;
+        listDiv.appendChild(card);
+    });
+}
+
+// Aktualisiert das Daten-Array bei Änderungen
+function updateData(index, field, value) {
+    blocksData[index][field] = value;
+}
+
+// Fügt ein neues leeres Feld hinzu
+function addNewBlockField() {
+    blocksData.push({ name: '', content: '' });
+    renderBlocks();
+}
+
+// Löscht einen Block aus der Liste
+function deleteBlock(index) {
+    blocksData.splice(index, 1);
+    renderBlocks();
+}
+
+// Verwandelt das Array in sauberes JSON
+function generateJSON() {
+    // Filtert leere Einträge heraus
+    const cleanData = blocksData.filter(b => b.name.trim() !== '' || b.content.trim() !== '');
+    
+    // Generiert das JSON mit 2 Leerzeichen Einrückung für gute Lesbarkeit
+    const jsonString = JSON.stringify(cleanData, null, 2);
+    
+    document.getElementById('jsonOutput').value = jsonString;
+}
+
+// Initial beim Laden ausführen
+renderBlocks();
+</script>
+
+</body>
+</html>
+
