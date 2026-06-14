@@ -3,102 +3,162 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>GPS Schnitzeljagd mit Model-Viewer</title>
+    <title>Station 1: Das Abenteuer beginnt</title>
     
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
     
     <style>
-      body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #111; font-family: sans-serif; }
+      /* Modernes, dunkles Gesamtdesign der Webseite */
+      body, html { 
+        margin: 0; padding: 0; width: 100%; height: 100%; 
+        background-color: #121212; color: #e0e0e0; 
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+      }
       
-      /* 2D-Navigations-Bildschirm (Akkuschonend beim Laufen) */
-      #overlay {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: #1a1a1a; color: white; display: flex; flex-direction: column;
-        align-items: center; justify-content: center; z-index: 9999; text-align: center; padding: 20px; box-sizing: border-box;
-      }
-      .btn {
-        background: #27ae60; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 30px; cursor: pointer; margin-top: 20px; font-weight: bold;
+      /* Haupt-Rahmen, der den Inhalt auf Handys schön zentriert */
+      .game-container {
+        max-width: 500px; margin: 0 auto; height: 100%;
+        display: flex; flex-direction: column; box-sizing: border-box;
+        background-color: #1e1e1e; box-shadow: 0 0 20px rgba(0,0,0,0.5);
       }
 
-      /* Das 3D/AR Fenster (Füllt den Bildschirm erst bei Ankunft) */
+      /* Kopfbereich */
+      header {
+        background: #2d3748; padding: 20px; text-align: center;
+        border-bottom: 3px solid #3182ce;
+      }
+      header h1 { margin: 0; font-size: 22px; color: #f6ad55; letter-spacing: 1px; }
+
+      /* --- ANSICHT 1: STORY & ERKLÄRUNG --- */
+      #story-view {
+        flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 30px;
+      }
+      .story-text {
+        background: #2d3748; border-radius: 12px; padding: 20px; line-height: 1.6; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+      }
+      .instruction-box {
+        background: rgba(49, 130, 206, 0.1); border: 1px solid #3182ce; border-radius: 12px; padding: 15px; margin-top: 20px;
+      }
+      .instruction-box h3 { margin: 0 0 8px 0; color: #63b3ed; font-size: 16px; }
+      .instruction-box p { margin: 0; font-size: 14px; color: #a0aec0; }
+
+      .action-btn {
+        background: #38a169; color: white; border: none; padding: 16px; 
+        font-size: 18px; font-weight: bold; border-radius: 30px; cursor: pointer;
+        box-shadow: 0 4px 12px rgba(56, 161, 105, 0.4); margin-top: 30px; width: 100%;
+      }
+      .action-btn:active { background: #2f855a; }
+
+      /* --- ANSICHT 2: AR-KAMERA-WELT (STARTET UNSICHTBAR) --- */
+      #ar-view {
+        display: none; flex: 1; position: relative; background: #000;
+      }
       model-viewer {
-        width: 100vw; height: 100vh; display: none;
+        width: 100%; height: 100%;
       }
 
-      /* Native AR-Aktivierungstaste von Google */
+      /* Großer Aktivierungsbutton im Kamerabild */
       #ar-button {
-        background-color: #e67e22; color: white; font-weight: bold; font-size: 16px;
-        border-radius: 30px; padding: 12px 25px; border: none; position: absolute;
-        bottom: 110px; left: 50%; transform: translateX(-50%); z-index: 999; box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        background-color: #dd6b20; color: white; font-weight: bold; font-size: 16px;
+        border-radius: 30px; padding: 15px 30px; border: none; position: absolute;
+        bottom: 110px; left: 50%; transform: translateX(-50%); z-index: 10; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.6); cursor: pointer;
       }
 
-      /* Schwebende Audiosteuerung über dem AR-Bildschirm */
-      #audio-controls {
-        position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-        z-index: 1000; display: none; background: rgba(0, 0, 0, 0.85);
-        padding: 12px 25px; border-radius: 30px; gap: 15px; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      /* Schwebende Audiosteuerung über der Kamera */
+      .audio-banner {
+        position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+        z-index: 11; background: rgba(0, 0, 0, 0.85); border: 1px solid #4a5568;
+        padding: 10px 20px; border-radius: 30px; display: flex; gap: 15px; align-items: center;
       }
       .control-btn {
-        background: #3498db; color: white; border: none; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 20px; cursor: pointer; min-width: 90px;
+        background: #3182ce; color: white; border: none; padding: 10px 25px; 
+        font-size: 15px; font-weight: bold; border-radius: 20px; cursor: pointer; min-width: 90px;
       }
+      .control-btn:active { background: #2b6cb0; }
     </style>
   </head>
   <body>
 
-    <audio id="erzaehlung" src="deine-erzaehlung.mp3" preload="auto"></audio>
+    <audio id="story-audio" src="deine-erzaehlung.mp3" preload="auto"></audio>
 
-    <div id="overlay">
-      <h2>Station 1: Die Suche läuft</h2>
-      <p id="status-text">Bitte klicke auf Start, um das GPS-Tracking zu aktivieren...</p>
-      <button id="start-btn" class="btn">Schnitzeljagd starten</button>
-    </div>
-
-    <model-viewer 
-      id="viewer"
-      src="https://modelviewer.dev/shared-assets/models/Astronaut.glb" 
-      ar 
-      ar-modes="webxr scene-viewer quick-look" 
-      camera-controls 
-      touch-action="none"
-      shadow-intensity="1">
+    <div class="game-container">
       
-      <button slot="ar-button" id="ar-button">
-        📸 In den Raum stellen (Boden scannen)
-      </button>
-      
-    </model-viewer>
+      <header>
+        <h1>Kapitel 1: Der geheime Gast</h1>
+      </header>
 
-    <div id="audio-controls">
-      <button id="pause-btn" class="control-btn">⏸ Pause</button>
-      <button id="play-btn" class="control-btn" style="display: none;">▶ Play</button>
+      <div id="story-view">
+        <div class="story-text">
+          <p>Du hast den markierten Ort erreicht. Die Legende besagt, dass genau hier ein Reisender aus einer fernen Galaxie gestrandet ist. Er wartet im digitalen Äther darauf, von dir gerufen zu werden.</p>
+          
+          <div class="instruction-box">
+            <h3>So funktioniert es gleich:</h3>
+            <p>1. Klicke unten auf "AR starten".<br>
+               2. Drücke auf den orangefarbenen Button.<br>
+               3. Bewege dein Handy langsam, bis der Boden erkannt wird.</p>
+          </div>
+        </div>
+
+        <button id="start-ar-btn" class="action-btn">Jetzt AR starten</button>
+      </div>
+
+      <div id="ar-view">
+        <model-viewer 
+          id="viewer"
+          src="https://modelviewer.dev/shared-assets/models/Astronaut.glb" 
+          ar 
+          ar-modes="webxr scene-viewer quick-look" 
+          camera-controls 
+          touch-action="none"
+          shadow-intensity="1">
+          
+          <button slot="ar-button" id="ar-button">
+            📸 Auf den echten Boden stellen
+          </button>
+          
+        </model-viewer>
+
+        <div class="audio-banner">
+          <button id="pause-btn" class="control-btn">⏸ Pause</button>
+          <button id="play-btn" class="control-btn" style="display: none;">▶ Play</button>
+        </div>
+      </div>
+
     </div>
 
     <script>
-      // HIER DEINE ECHTEN KOORDINATEN EINTRAGEN
-      const targetLat = 48.137154;
-      const targetLon = 11.575449;
-      const triggerRadiusMeter = 15; // Radius in Metern für die Ankunft
-
-      const overlay = document.getElementById('overlay');
-      const statusText = document.getElementById('status-text');
-      const startBtn = document.getElementById('start-btn');
-      const viewer = document.getElementById('viewer');
-      const audio = document.getElementById('erzaehlung');
-      const controlsDiv = document.getElementById('audio-controls');
+      const storyView = document.getElementById('story-view');
+      const arView = document.getElementById('ar-view');
+      const startArBtn = document.getElementById('start-ar-btn');
+      
+      const audio = document.getElementById('story-audio');
       const playBtn = document.getElementById('play-btn');
       const pauseBtn = document.getElementById('pause-btn');
-      
-      let watchId = null;
 
-      // Die mathematische Formel zur präzisen GPS-Abstands-Berechnung
-      function getDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371000; 
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-      }
+      // Klick auf "Jetzt AR starten" schaltet die Ansicht um
+      startArBtn.addEventListener('click', () => {
+        storyView.style.display = 'none'; // Erklärung ausblenden
+        arView.style.display = 'flex';     // AR-Bereich einblenden
+        
+        audio.play(); // Audio startet sofort automatisch im Hintergrund
+      });
 
+      // --- AUDIO-STEUERUNG (Play / Pause) ---
+      pauseBtn.addEventListener('click', () => {
+        audio.pause();
+        pauseBtn.style.style.display = 'none';
+        playBtn.style.display = 'inline-block';
+      });
+
+      playBtn.addEventListener('click', () => {
+        audio.play();
+        playBtn.style.display = 'none';
+        pauseBtn.style.display = 'inline-block';
+      });
+    </script>
+  </body>
+</html>
       // Start-Klick des Nutzers schaltet das Live-GPS scharf
       startBtn.addEventListener('click', () => {
         startBtn.style.display = "none";
