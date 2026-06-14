@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>A-Frame AR: Bunter Kubus auf Boden</title>
+    
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    
+    <style>
+      body { margin: 0; overflow: hidden; font-family: sans-serif; background: #111; }
+      #start-screen {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        color: white; z-index: 999;
+      }
+      .btn {
+        background: #e74c3c; color: white; border: none; padding: 15px 30px;
+        font-size: 18px; font-weight: bold; border-radius: 30px; cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+
+    <div id="start-screen">
+      <h2>Station erreicht!</h2>
+      <button id="aktivieren-btn" class="btn">AR-Modus aktivieren</button>
+    </div>
+
+    <div id="ar-container"></div>
+
+    <script>
+      document.getElementById('aktivieren-btn').addEventListener('click', () => {
+        // Startbildschirm ausblenden
+        document.getElementById('start-screen').style.display = 'none';
+
+        // AR-Szene live in den Container injizieren
+        const container = document.getElementById('ar-container');
+        container.innerHTML = `
+          <a-scene xr-mode-ui="enabled: true" webxr="optionalFeatures: hit-test;">
+            
+            <a-entity camera look-controls wasd-controls></a-entity>
+
+            <a-box 
+              position="0 0.5 -2" 
+              rotation="0 45 0" 
+              width="1" height="1" depth="1"
+              material="color: #3498db; roughness: 0.3; metalness: 0.2"
+              animation="property: rotation; to: 0 405 0; loop: true; dur: 5000; easing: linear">
+            </a-box>
+
+            <a-grid position="0 0 0" rotation="-90 0 0" width="10" height="10" opacity="0.2"></a-grid>
+
+          </a-scene>
+        `;
+      });
+    </script>
+  </body>
+</html>
