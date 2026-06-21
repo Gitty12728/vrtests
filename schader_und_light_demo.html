@@ -2,24 +2,38 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Premium Ausstellungsplattform - Stierkopf Fix</title>
-    <!-- A-Frame Core -->
+    <title>Premium Ausstellungsplattform - Vollerausstattung</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <!-- A-Frame Extras für Animationen -->
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
+
+    <script>
+        AFRAME.registerComponent('platform-boundary', {
+            schema: { radius: {type: 'number', default: 4.7} }, // Hält dich knapp vor der Brüstung auf
+            tick: function () {
+                let pos = this.el.getAttribute('position');
+                let dist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
+                if (dist > this.data.radius) {
+                    // Berechnet den Winkel und drückt den Spieler zurück auf die Plattform
+                    let angle = Math.atan2(pos.z, pos.x);
+                    pos.x = Math.cos(angle) * this.data.radius;
+                    pos.z = Math.sin(angle) * this.data.radius;
+                    this.el.setAttribute('position', pos);
+                }
+            }
+        });
+    </script>
 </head>
 <body>
 
-    <!-- Wir lassen A-Frame den Draco-Decoder ab Version 1.4.0+ komplett selbst verwalten -->
     <a-scene shadow="type: pcfsoft">
         
         <a-assets>
-            <!-- Stelle sicher, dass die Datei exakt so heißt und im selben Ordner liegt -->
             <a-asset-item id="stierkopf" src="bull_head_4k-v2.glb"></a-asset-item>
         </a-assets>
 
-        <!-- KAMERA RIG -->
-        <a-entity id="camera-rig" position="0 0 4">
+        <a-sky color="#03030a"></a-sky>
+
+        <a-entity id="camera-rig" position="0 0 4" platform-boundary>
             <a-entity camera 
                       position="0 1.7 0" 
                       look-controls 
@@ -27,16 +41,14 @@
             </a-entity>
         </a-entity>
 
-        <!-- DIE HAUPTPLATTFORM (10m Durchmesser) -->
         <a-cylinder id="main-platform" 
                     radius="5" 
                     height="0.1" 
                     color="#112233" 
                     position="0 -0.05 0"
                     shadow="receive: true">
-        </a-cylinder>
+                </a-cylinder>
 
-        <!-- BRÜSTUNG -->
         <a-cylinder id="railing" 
                     radius="5" 
                     height="1.2" 
@@ -45,7 +57,6 @@
                     material="color: #8cc0e3; opacity: 0.25; transparent: true; side: double">
         </a-cylinder>
 
-        <!-- ROTIERENDES NEON-SEGMENT -->
         <a-entity animation="property: rotation; to: 0 360 0; loop: true; dur: 12000; easing: linear">
             <a-ring radius-inner="4.9" 
                     radius-outer="5" 
@@ -58,48 +69,50 @@
         </a-entity>
 
 
-        <!-- ==================== STIERKOPF (ZENTRUM) ==================== -->
-        <!-- Leicht angehoben (Y=0.5) und Scale vorsichtshalber auf 1.5 gesetzt -->
+        <a-cylinder id="center-podest"
+                    radius="0.6"
+                    height="1.0"
+                    color="#112233"
+                    position="0 0.5 0"
+                    shadow="cast: true; receive: true">
+        </a-cylinder>
+
         <a-gltf-model src="#stierkopf" 
-                      position="0 0.5 0" 
+                      position="0 1.5 0" 
                       scale="1.5 1.5 1.5"
                       animation-mixer
                       shadow="cast: true; receive: true">
         </a-gltf-model>
 
 
-        <!-- ==================== DIE VIER EXPONATE ==================== -->
-        <!-- Nord-Ost: Chrom-Kugel -->
         <a-entity position="2.2 0 2.2">
             <a-cylinder radius="0.3" height="0.8" color="#112233" position="0 0.4 0" shadow="cast: true; receive: true"></a-cylinder>
             <a-sphere radius="0.3" position="0 1.1 0" material="metalness: 1.0; roughness: 0.05; color: #ffffff" shadow="cast: true"></a-sphere>
         </a-entity>
 
-        <!-- Nord-West: Neon-Ring -->
         <a-entity position="-2.2 0 2.2">
             <a-box width="0.6" height="0.8" depth="0.6" color="#112233" position="0 0.4 0" shadow="cast: true; receive: true"></a-box>
             <a-torus radius="0.2" radius-tubular="0.05" position="0 1.1 0" rotation="0 0 45" material="shader: flat; color: #ff00ff"></a-torus>
         </a-entity>
 
-        <!-- Süd-West: Matter Orange-Kegel -->
         <a-entity position="-2.2 0 -2.2">
             <a-cylinder radius="0.3" height="0.8" color="#112233" position="0 0.4 0" shadow="cast: true; receive: true"></a-cylinder>
             <a-cone radius-bottom="0.25" radius-top="0" height="0.5" position="0 1.1 0" material="roughness: 0.95; metalness: 0.0; color: #ff9900" shadow="cast: true"></a-cone>
         </a-entity>
 
-        <!-- Süd-Ost: Cyanglas-Würfel -->
         <a-entity position="2.2 0 -2.2">
             <a-box width="0.6" height="0.8" depth="0.6" color="#112233" position="0 0.4 0" shadow="cast: true; receive: true"></a-box>
             <a-box width="0.4" height="0.4" depth="0.4" position="0 1.1 0" rotation="0 30 0" material="color: #00ffff; opacity: 0.4; transparent: true; roughness: 0.1" shadow="cast: true"></a-box>
         </a-entity>
 
 
-        <!-- ==================== LICHTER ==================== -->
         <a-light type="ambient" color="#ffffff" intensity="0.2"></a-light>
         <a-light type="directional" color="#ffffff" intensity="0.4" position="-2 5 3" light="castShadow: true; shadowMapHeight: 2048; shadowMapWidth: 2048"></a-light>
+
         <a-entity light="type: point; color: #00ffff; intensity: 0.6; distance: 4" position="3.1 1.4 0"></a-entity>
         <a-entity light="type: spot; color: #ff0000; intensity: 0.8; distance: 5; angle: 30" position="0 1.6 3.1" rotation="-45 180 0"></a-entity>
         <a-entity light="type: point; color: #ffaa00; intensity: 0.6; distance: 3" position="-3.1 1.4 0"></a-entity>
+        
         <a-entity light="type: point; color: #00ff00; distance: 5" 
                   position="0 1.4 -3.1"
                   animation="property: light.intensity; from: 0.2; to: 2.5; dur: 1500; dir: alternate; loop: true; easing: easeInOutSine">
