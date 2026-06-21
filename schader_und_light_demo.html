@@ -2,18 +2,18 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Premium Ausstellungsplattform - Vollerausstattung</title>
+    <title>Premium Ausstellungsplattform - Fixed Edition</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
 
     <script>
         AFRAME.registerComponent('platform-boundary', {
-            schema: { radius: {type: 'number', default: 4.7} }, // Hält dich knapp vor der Brüstung auf
+            schema: { radius: {type: 'number', default: 4.8} }, // Stoppt dich kurz vor der Brüstung
             tick: function () {
                 let pos = this.el.getAttribute('position');
+                // Berechnet die aktuelle Distanz zum Mittelpunkt (0,0)
                 let dist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
                 if (dist > this.data.radius) {
-                    // Berechnet den Winkel und drückt den Spieler zurück auf die Plattform
                     let angle = Math.atan2(pos.z, pos.x);
                     pos.x = Math.cos(angle) * this.data.radius;
                     pos.z = Math.sin(angle) * this.data.radius;
@@ -31,13 +31,14 @@
             <a-asset-item id="stierkopf" src="bull_head_4k-v2.glb"></a-asset-item>
         </a-assets>
 
-        <a-sky color="#03030a"></a-sky>
+        <a-sky src="https://cdn.aframe.io/360-image-gallery-room/stars.jpg"></a-sky>
 
-        <a-entity id="camera-rig" position="0 0 4" platform-boundary>
+        <a-entity id="camera-rig" position="0 0 0">
             <a-entity camera 
-                      position="0 1.7 0" 
+                      position="0 1.7 4" 
                       look-controls 
-                      wasd-controls="acceleration: 65">
+                      wasd-controls="acceleration: 65"
+                      platform-boundary>
             </a-entity>
         </a-entity>
 
@@ -47,7 +48,7 @@
                     color="#112233" 
                     position="0 -0.05 0"
                     shadow="receive: true">
-                </a-cylinder>
+        </a-cylinder>
 
         <a-cylinder id="railing" 
                     radius="5" 
