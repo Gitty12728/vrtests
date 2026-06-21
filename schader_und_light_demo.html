@@ -2,16 +2,16 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Premium Ausstellungsplattform - Fixed Edition</title>
+    <title>Premium Ausstellungsplattform - Ultimate VR Edition</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
 
     <script>
+        // 1. RAND-COLLIDER (Sperrt dich auf der Plattform ein)
         AFRAME.registerComponent('platform-boundary', {
-            schema: { radius: {type: 'number', default: 4.8} }, // Stoppt dich kurz vor der Brüstung
+            schema: { radius: {type: 'number', default: 4.7} },
             tick: function () {
                 let pos = this.el.getAttribute('position');
-                // Berechnet die aktuelle Distanz zum Mittelpunkt (0,0)
                 let dist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
                 if (dist > this.data.radius) {
                     let angle = Math.atan2(pos.z, pos.x);
@@ -19,6 +19,30 @@
                     pos.z = Math.sin(angle) * this.data.radius;
                     this.el.setAttribute('position', pos);
                 }
+            }
+        });
+
+        // 2. SNAP TURN COMPONENT (Für stufenreines Drehen per Quest-Joystick)
+        AFRAME.registerComponent('snap-turn', {
+            init: function () {
+                let el = this.el;
+                let rig = document.getElementById('camera-rig');
+                let turned = false; // Verhindert Dauer-Slipping beim Halten des Sticks
+
+                el.addEventListener('thumbstickmoved', function (evt) {
+                    // X-Achse des Joysticks (Links / Rechts)
+                    if (Math.abs(evt.detail.x) > 0.6) {
+                        if (!turned) {
+                            let rotation = rig.getAttribute('rotation');
+                            // Dreht das ganze Rig um 45 Grad nach links oder rechts
+                            rotation.y += evt.detail.x > 0 ? -45 : 45;
+                            rig.setAttribute('rotation', rotation);
+                            turned = true;
+                        }
+                    } else if (Math.abs(evt.detail.x) < 0.2) {
+                        turned = false; // Reset, wenn der Stick wieder in der Mitte ist
+                    }
+                });
             }
         });
     </script>
@@ -31,60 +55,40 @@
             <a-asset-item id="stierkopf" src="bull_head_4k-v2.glb"></a-asset-item>
         </a-assets>
 
-        <a-sky src="https://cdn.aframe.io/360-image-gallery-room/stars.jpg"></a-sky>
+        <a-sky material="src: https://cdn.aframe.io/360-image-gallery-room/stars.jpg; shader: flat"></a-sky>
 
-        <a-entity id="camera-rig" position="0 0 0">
-            <a-entity camera 
-                      position="0 1.7 4" 
-                      look-controls 
-                      wasd-controls="acceleration: 65"
-                      platform-boundary>
+        <a-entity id="camera-rig" 
+                  position="0 0 4" 
+                  movement-controls="controls: keyboard, gamepad; speed: 0.15" 
+                  platform-boundary>
+            
+            <a-entity camera position="0 1.7 0" look-controls></a-entity>
+
+            <a-entity id="left-hand" 
+                      oculus-touch-controls="hand: left"
+                      laser-controls="hand: left"
+                      raycaster="objects: .clickable; far: 10">
             </a-entity>
+            
+            <a-entity id="right-hand" 
+                      oculus-touch-controls="hand: right"
+                      laser-controls="hand: right"
+                      raycaster="objects: .clickable; far: 10"
+                      snap-turn>
+            </a-entity>
+
         </a-entity>
 
-        <a-cylinder id="main-platform" 
-                    radius="5" 
-                    height="0.1" 
-                    color="#112233" 
-                    position="0 -0.05 0"
-                    shadow="receive: true">
-        </a-cylinder>
+        <a-cylinder id="main-platform" radius="5" height="0.1" color="#112233" position="0 -0.05 0" shadow="receive: true"></a-cylinder>
 
-        <a-cylinder id="railing" 
-                    radius="5" 
-                    height="1.2" 
-                    open-ended="true" 
-                    position="0 0.6 0"
-                    material="color: #8cc0e3; opacity: 0.25; transparent: true; side: double">
-        </a-cylinder>
+        <a-cylinder id="railing" radius="5" height="1.2" open-ended="true" position="0 0.6 0" material="color: #8cc0e3; opacity: 0.25; transparent: true; side: double"></a-cylinder>
 
         <a-entity animation="property: rotation; to: 0 360 0; loop: true; dur: 12000; easing: linear">
-            <a-ring radius-inner="4.9" 
-                    radius-outer="5" 
-                    theta-length="45" 
-                    color="#ccff00" 
-                    rotation="90 0 0" 
-                    position="0 0.01 0"
-                    material="shader: flat; side: double">
-            </a-ring>
+            <a-ring radius-inner="4.9" radius-outer="5" theta-length="45" color="#ccff00" rotation="90 0 0" position="0 0.01 0" material="shader: flat; side: double"></a-ring>
         </a-entity>
 
-
-        <a-cylinder id="center-podest"
-                    radius="0.6"
-                    height="1.0"
-                    color="#112233"
-                    position="0 0.5 0"
-                    shadow="cast: true; receive: true">
-        </a-cylinder>
-
-        <a-gltf-model src="#stierkopf" 
-                      position="0 1.5 0" 
-                      scale="1.5 1.5 1.5"
-                      animation-mixer
-                      shadow="cast: true; receive: true">
-        </a-gltf-model>
-
+        <a-cylinder id="center-podest" radius="0.6" height="1.0" color="#112233" position="0 0.5 0" shadow="cast: true; receive: true"></a-cylinder>
+        <a-gltf-model src="#stierkopf" position="0 1.5 0" scale="1.5 1.5 1.5" animation-mixer shadow="cast: true; receive: true"></a-gltf-model>
 
         <a-entity position="2.2 0 2.2">
             <a-cylinder radius="0.3" height="0.8" color="#112233" position="0 0.4 0" shadow="cast: true; receive: true"></a-cylinder>
@@ -106,18 +110,12 @@
             <a-box width="0.4" height="0.4" depth="0.4" position="0 1.1 0" rotation="0 30 0" material="color: #00ffff; opacity: 0.4; transparent: true; roughness: 0.1" shadow="cast: true"></a-box>
         </a-entity>
 
-
         <a-light type="ambient" color="#ffffff" intensity="0.2"></a-light>
         <a-light type="directional" color="#ffffff" intensity="0.4" position="-2 5 3" light="castShadow: true; shadowMapHeight: 2048; shadowMapWidth: 2048"></a-light>
-
         <a-entity light="type: point; color: #00ffff; intensity: 0.6; distance: 4" position="3.1 1.4 0"></a-entity>
         <a-entity light="type: spot; color: #ff0000; intensity: 0.8; distance: 5; angle: 30" position="0 1.6 3.1" rotation="-45 180 0"></a-entity>
         <a-entity light="type: point; color: #ffaa00; intensity: 0.6; distance: 3" position="-3.1 1.4 0"></a-entity>
-        
-        <a-entity light="type: point; color: #00ff00; distance: 5" 
-                  position="0 1.4 -3.1"
-                  animation="property: light.intensity; from: 0.2; to: 2.5; dur: 1500; dir: alternate; loop: true; easing: easeInOutSine">
-        </a-entity>
+        <a-entity light="type: point; color: #00ff00; distance: 5" position="0 1.4 -3.1" animation="property: light.intensity; from: 0.2; to: 2.5; dur: 1500; dir: alternate; loop: true; easing: easeInOutSine"></a-entity>
 
     </a-scene>
 
