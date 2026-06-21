@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Plattform 10m - Licht & Shader Ausstellung</title>
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+    </style>
+</head>
+<body>
+
+    <a-scene>
+        <a-assets>
+            <canvas id="stars-texture" width="2048" height="1024"></canvas>
+        </a-assets>
+
+        <a-entity id="camera-rig" position="0 0 0">
+            <a-entity camera position="0 1.6 0" look-controls></a-entity>
+        </a-entity>
+
+        <a-entity id="platform" position="0 0 0">
+            
+            <a-circle color="#1a3a6c" 
+                      radius="5.0" 
+                      rotation="-90 0 0" 
+                      side="double">
+            </a-circle>
+
+            <a-entity id="moving-segment-container" position="0 0.01 0" rotation="0 0 0">
+                <a-circle id="neon-segment" 
+                          color="#ccff00" 
+                          radius="5.0" 
+                          theta-start="0" theta-length="45"
+                          rotation="-90 0 0" 
+                          material="shader: flat; transparent: true; opacity: 0.65"
+                          side="double">
+                </a-circle>
+                <a-circle color="#ccff00" 
+                          radius="5.15" 
+                          theta-start="-1" theta-length="47"
+                          rotation="-90 0 0" 
+                          position="0 -0.001 0"
+                          material="shader: flat; transparent: true; opacity: 0.2"
+                          side="double">
+                </a-circle>
+            </a-entity>
+
+            <a-ring color="#0a1526" radius-inner="2.98" radius-outer="3.02" rotation="-90 0 0" position="0 0.02 0"></a-ring>
+
+            <a-cylinder position="2.2 0.4 2.2" radius="0.3" height="0.8" color="#112233"></a-cylinder>
+            <a-sphere position="2.2 1.1 2.2" radius="0.3" material="shader: standard; color: #ffffff; metalness: 0.95; roughness: 0.05"></a-sphere>
+
+            <a-box position="-2.2 0.4 2.2" width="0.6" height="0.8" depth="0.6" color="#112233"></a-box>
+            <a-torus position="-2.2 1.1 2.2" radius="0.2" radius-tubular="0.05" rotation="0 45 0" material="shader: flat; color: #ff00ff"></a-torus>
+
+            <a-cylinder position="-2.2 0.4 -2.2" radius="0.3" height="0.8" color="#112233"></a-cylinder>
+            <a-cone position="-2.2 1.1 -2.2" radius-bottom="0.25" height="0.5" material="shader: standard; color: #ff9900; roughness: 0.95; metalness: 0.0"></a-cone>
+
+            <a-box position="2.2 0.4 -2.2" width="0.6" height="0.8" depth="0.6" color="#112233"></a-box>
+            <a-box position="2.2 1.1 -2.2" width="0.4" height="0.4" depth="0.4" rotation="0 30 0" material="shader: standard; color: #00ffff; transparent: true; opacity: 0.4; roughness: 0.1; metalness: 0.2"></a-box>
+
+
+            <a-entity position="3.1 0 0">
+                <a-cylinder radius="0.04" height="1.4" position="0 0.7 0" color="#223344"></a-cylinder> <a-sphere radius="0.1" position="0 1.4 0" color="#00ffff" material="shader: flat"></a-sphere> <a-entity light="type: point; color: #00ffff; intensity: 2.0; distance: 4.0" position="0 1.4 0"></a-entity>
+            </a-entity>
+
+            <a-entity position="0 0 3.1">
+                <a-cylinder radius="0.04" height="1.6" position="0 0.8 0" color="#223344"></a-cylinder>
+                <a-cylinder radius="0.08" height="0.2" position="0 1.6 -0.1" rotation="45 0 0" color="#111111"></a-cylinder>
+                <a-entity light="type: spot; color: #ff0000; intensity: 4.0; angle: 40; penumbra: 0.5; distance: 3.5" position="0 1.6 -0.1" rotation="-45 0 0"></a-entity>
+            </a-entity>
+
+            <a-entity position="-3.1 0 0">
+                <a-cylinder radius="0.04" height="1.4" position="0 0.7 0" color="#223344"></a-cylinder>
+                <a-box width="0.15" height="0.15" depth="0.15" position="0 1.4 0" color="#ffaa00" material="shader: flat"></a-box>
+                <a-entity light="type: point; color: #ffaa00; intensity: 5.0; distance: 2.5; decay: 2" position="0 1.4 0"></a-entity>
+            </a-entity>
+
+            <a-entity position="0 0 -3.1">
+                <a-cylinder radius="0.04" height="1.4" position="0 0.7 0" color="#223344"></a-cylinder>
+                <a-sphere radius="0.1" position="0 1.4 0" color="#00ff00" material="shader: flat"
+                          animation="property: material.opacity; from: 0.2; to: 1.0; dir: alternate; loop: true; dur: 800"></a-sphere>
+                <a-entity light="type: point; color: #00ff00; distance: 4.0" position="0 1.4 0"
+                          animation="property: light.intensity; from: 0.2; to: 3.0; dir: alternate; loop: true; dur: 800"></a-entity>
+            </a-entity>
+
+
+            <a-cylinder radius="5.0" height="1.2" position="0 0.6 0" 
+                        material="color: #8daed6; opacity: 0.25; transparent: true; side: double; roughness: 0.1; metalness: 0.3"
+                        open-ended="true">
+            </a-cylinder>
+            
+            <a-cylinder position="5.0 0.6 0" radius="0.03" height="1.2" color="#0a1526"></a-cylinder>
+            <a-cylinder position="-5.0 0.6 0" radius="0.03" height="1.2" color="#0a1526"></a-cylinder>
+            <a-cylinder position="0 0.6 5.0" radius="0.03" height="1.2" color="#0a1526"></a-cylinder>
+            <a-cylinder position="0 0.6 -5.0" radius="0.03" height="1.2" color="#0a1526"></a-cylinder>
+        </a-entity>
+
+        <a-sky color="#000000"></a-sky>
+        <a-sky id="space-sky" src="#stars-texture" material="transparent: true; opacity: 1" radius="495"></a-sky>
+        
+        <a-light id="ambient-light" type="ambient" color="#ffffff" intensity="0.3"></a-light>
+        <a-light id="directional-light" type="directional" color="#ffffff" intensity="0.4" position="4 6 -2"></a-light>
+    </a-scene>
+
+    <script>
+        const segmentContainer = document.getElementById('moving-segment-container');
+        const sky = document.getElementById('space-sky');
+        const ambientLight = document.getElementById('ambient-light');
+        const directionalLight = document.getElementById('directional-light');
+        
+        let currentRotationY = 0;
+        const angleStep = -45; 
+        const fadeDuration = 1200; 
+
+        function animateValue(start, end, duration, onUpdate, onComplete) {
+            let startTime = null;
+            function step(timestamp) {
+                if (!startTime) startTime = timestamp;
+                let progress = Math.min((timestamp - startTime) / duration, 1);
+                let currentValue = start + (end - start) * progress;
+                onUpdate(currentValue);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else if (onComplete) {
+                    onComplete();
+                }
+            }
+            window.requestAnimationFrame(step);
+        }
+
+        setInterval(() => {
+            animateValue(1, 0, fadeDuration, (factor) => {
+                sky.setAttribute('material', `transparent: true; opacity: ${factor}`);
+                ambientLight.setAttribute('intensity', factor * 0.3);
+                directionalLight.setAttribute('intensity', factor * 0.4);
+            }, () => {
+                
+                currentRotationY += angleStep;
+                segmentContainer.setAttribute('rotation', `0 ${currentRotationY} 0`);
+                
+                animateValue(0, 1, fadeDuration, (factor) => {
+                    sky.setAttribute('material', `transparent: true; opacity: ${factor}`);
+                    ambientLight.setAttribute('intensity', factor * 0.3);
+                    directionalLight.setAttribute('intensity', factor * 0.4);
+                });
+            });
+
+        }, 5000);
+    </script>
+
+    <script>
+        (function() {
+            const canvas = document.getElementById('stars-texture');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#02040a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < 800; i++) {
+                let x = Math.random() * canvas.width;
+                let y = Math.random() * canvas.height;
+                let radius = Math.random() * 1.5;
+                let colors = ['#ffffff', '#ffffff', '#e0f0ff', '#fff5d1'];
+                ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        })();
+    </script>
+
+    <script>
+        const rig = document.getElementById('camera-rig');
+        const camera = document.querySelector('[camera]');
+        const keys = { w: false, a: false, s: false, d: false };
+        const speed = 0.12;
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = false;
+        });
+
+        setInterval(() => {
+            let pos = rig.getAttribute('position');
+            let rot = camera.getAttribute('rotation');
+            let angle = rot.y * Math.PI / 180;
+            let moveX = 0; let moveZ = 0;
+
+            if (keys.w) { moveX -= Math.sin(angle); moveZ -= Math.cos(angle); }
+            if (keys.s) { moveX += Math.sin(angle); moveZ += Math.cos(angle); }
+            if (keys.a) { moveX -= Math.cos(angle); moveZ += Math.sin(angle); }
+            if (keys.d) { moveX += Math.cos(angle); moveZ -= Math.sin(angle); }
+
+            let nextX = pos.x + moveX * speed;
+            let nextZ = pos.z + moveZ * speed;
+            let distance = Math.sqrt(nextX * nextX + nextZ * nextZ);
+
+            if (distance < 4.9) {
+                rig.setAttribute('position', { x: nextX, y: pos.y, z: nextZ });
+            } else {
+                let edgeAngle = Math.atan2(nextZ, nextX);
+                rig.setAttribute('position', { x: Math.cos(edgeAngle) * 4.89, y: pos.y, z: Math.sin(edgeAngle) * 4.89 });
+            }
+        }, 16);
+    </script>
+
+</body>
+</html>
