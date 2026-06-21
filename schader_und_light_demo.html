@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Plattform 10m - Dual Control Edition (Desktop WASD + VR Quest 2)</title>
+    <title>Plattform 10m - Physik & Sound Update</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; }
@@ -13,6 +13,7 @@
     <a-scene>
         <a-assets>
             <canvas id="stars-texture" width="2048" height="1024"></canvas>
+            <audio id="step-audio" src="step.mp3" loop preload="auto"></audio>
         </a-assets>
 
         <a-entity id="camera-rig" position="0 0 0" rotation="0 0 0">
@@ -23,7 +24,6 @@
         </a-entity>
 
         <a-entity id="platform" position="0 0 0">
-            
             <a-circle color="#1a3a6c" radius="5.0" rotation="-90 0 0" side="double"></a-circle>
 
             <a-entity id="moving-segment-container" position="0 0.01 0" rotation="0 0 0">
@@ -179,17 +179,26 @@
         const camera = document.querySelector('[camera]');
         const leftController = document.getElementById('left-controller');
         const rightController = document.getElementById('right-controller');
+        const stepAudio = document.getElementById('step-audio');
         
-        // Speicher für Desktop-Tastatur
+        // Tastatur-Status
         const keys = { w: false, a: false, s: false, d: false };
-        const speed = 0.12;
+
+        // Aktuelle Bewegungsgeschwindigkeiten (für Trägheit/Beschleunigung)
+        let currentMoveX = 0;
+        let currentMoveZ = 0;
+
+        // Beschleunigungs-Parameter
+        const maxSpeed = 0.12;       // Maximale Endgeschwindigkeit
+        const accelFactor = 0.07;    // Je kleiner, desto sanfter die Beschleunigung (0.01 - 1.0)
+        const stopThreshold = 0.005;  // Ab wann die Bewegung als komplett gestoppt gilt
 
         // Speicher für VR-Joysticks
         let vrMoveX = 0;
         let vrMoveZ = 0;
         let canSnapTurn = true;
 
-        // ================= DESKTOP-ABFRAGE (TASTATUR) =================
+        // Tastatur Event-Listener (Desktop)
         window.addEventListener('keydown', (e) => { 
             const key = e.key.toLowerCase();
             if (key in keys) keys[key] = true; 
@@ -199,63 +208,97 @@
             if (key in keys) keys[key] = false; 
         });
 
-        // ================= VR-ABFRAGE (QUEST JOYSTICKS) =================
-        // Linker Stick: Flüssige Bewegung vorbereiten
+        // VR-Inputs (Quest 2)
         leftController.addEventListener('thumbstickmoved', (e) => {
             vrMoveX = e.detail.x; 
             vrMoveZ = e.detail.y; 
         });
 
-        // Rechter Stick: Snap-Rotation ausführen
         rightController.addEventListener('thumbstickmoved', (e) => {
             let stickX = e.detail.x;
             if (!canSnapTurn) {
-                if (Math.abs(stickX) < 0.2) canSnapTurn = true; // Stick wieder in Nullstellung gebracht
+                if (Math.abs(stickX) < 0.2) canSnapTurn = true;
                 return;
             }
-            if (stickX > 0.7) { // Klick nach rechts
+            if (stickX > 0.7) {
                 let currentRot = rig.getAttribute('rotation') || { x: 0, y: 0, z: 0 };
                 rig.setAttribute('rotation', { x: currentRot.x, y: currentRot.y - 45, z: currentRot.z });
                 canSnapTurn = false;
-            } else if (stickX < -0.7) { // Klick nach links
+            } else if (stickX < -0.7) {
                 let currentRot = rig.getAttribute('rotation') || { x: 0, y: 0, z: 0 };
                 rig.setAttribute('rotation', { x: currentRot.x, y: currentRot.y + 45, z: currentRot.z });
                 canSnapTurn = false;
             }
         });
 
-        // ================= RECHNERISCHE ZUSAMMENFÜHRUNG BEIDER SYSTEME =================
+        // Haupt-Positionsupdate-Loop (16ms / ~60fps)
         setInterval(() => {
             let pos = rig.getAttribute('position');
             let rigRot = rig.getAttribute('rotation') || { x: 0, y: 0, z: 0 };
             let camRot = camera.getAttribute('rotation') || { x: 0, y: 0, z: 0 };
             
-            // Blickwinkel kombinieren (wichtig für Desktop-Mausblick UND VR-Headsetrichtung)
             let totalAngle = (rigRot.y + camRot.y) * Math.PI / 180;
-            let moveX = 0; let moveZ = 0;
+            
+            // Wunsch-Geschwindigkeit in diesem Frame (Target)
+            let targetMoveX = 0;
+            let targetMoveZ = 0;
 
-            // SYSTEM A: Tastatur-Berechnung (Desktop)
-            if (keys.w) { moveX -= Math.sin(totalAngle); moveZ -= Math.cos(totalAngle); }
-            if (keys.s) { moveX += Math.sin(totalAngle); moveZ += Math.cos(totalAngle); }
-            if (keys.a) { moveX -= Math.cos(totalAngle); moveZ += Math.sin(totalAngle); }
-            if (keys.d) { moveX += Math.cos(totalAngle); moveZ -= Math.sin(totalAngle); }
+            // 1. Desktop-Input einspeisen
+            if (keys.w) { targetMoveX -= Math.sin(totalAngle); targetMoveZ -= Math.cos(totalAngle); }
+            if (keys.s) { targetMoveX += Math.sin(totalAngle); targetMoveZ += Math.cos(totalAngle); }
+            if (keys.a) { targetMoveX -= Math.cos(totalAngle); targetMoveZ += Math.sin(totalAngle); }
+            if (keys.d) { targetMoveX += Math.cos(totalAngle); targetMoveZ -= Math.sin(totalAngle); }
 
-            // SYSTEM B: VR-Joystick-Berechnung (Quest)
+            // 2. VR-Joystick-Input einspeisen
             if (Math.abs(vrMoveX) > 0.1 || Math.abs(vrMoveZ) > 0.1) {
-                moveX += vrMoveZ * Math.sin(totalAngle);
-                moveZ += vrMoveZ * Math.cos(totalAngle);
-                moveX += vrMoveX * Math.cos(totalAngle);
-                moveZ -= vrMoveX * Math.sin(totalAngle);
+                targetMoveX += vrMoveZ * Math.sin(totalAngle) + vrMoveX * Math.cos(totalAngle);
+                targetMoveZ += vrMoveZ * Math.cos(totalAngle) - vrMoveX * Math.sin(totalAngle);
             }
 
-            // Finale Positionsberechnung mit Plattformbegrenzung (Collider)
-            let nextX = pos.x + moveX * speed;
-            let nextZ = pos.z + moveZ * speed;
+            // Normieren, falls diagonal gelaufen wird, um nicht schneller zu sein
+            let targetMag = Math.sqrt(targetMoveX * targetMoveX + targetMoveZ * targetMoveZ);
+            if (targetMag > 0) {
+                targetMoveX = (targetMoveX / targetMag) * maxSpeed;
+                targetMoveZ = (targetMoveZ / targetMag) * maxSpeed;
+            }
+
+            // 3. SANFTE BESCHLEUNIGUNG & ABBREMSUNG (Linear Interpolation)
+            currentMoveX += (targetMoveX - currentMoveX) * accelFactor;
+            currentMoveZ += (targetMoveZ - currentMoveZ) * accelFactor;
+
+            // Hard Stop, wenn fast komplett ausgelaufen (verhindert unendliches Mikrorutschen)
+            if (Math.abs(currentMoveX) < stopThreshold && targetMoveX === 0) currentMoveX = 0;
+            if (Math.abs(currentMoveZ) < stopThreshold && targetMoveZ === 0) currentMoveZ = 0;
+
+            // 4. GEH-SOUND MANAGEMENT (AUDIO LOOP)
+            let currentSpeedMagnitude = Math.sqrt(currentMoveX * currentMoveX + currentMoveZ * currentMoveZ);
+            
+            if (currentSpeedMagnitude > 0.01) {
+                // Spieler bewegt sich -> Sound abspielen (falls noch nicht läuft)
+                if (stepAudio.paused) {
+                    stepAudio.play().catch(err => {
+                        // Verhindert Browser-Blockade-Fehler vor der ersten Interaktion
+                    });
+                }
+            } else {
+                // Spieler steht -> Sound pausieren und zurücksetzen
+                if (!stepAudio.paused) {
+                    stepAudio.pause();
+                    stepAudio.currentTime = 0; 
+                }
+            }
+
+            // 5. Positions-Berechnung & Barriere am Rand (Radius 4.9m)
+            let nextX = pos.x + currentMoveX;
+            let nextZ = pos.z + currentMoveZ;
             let distance = Math.sqrt(nextX * nextX + nextZ * nextZ);
 
             if (distance < 4.9) {
                 rig.setAttribute('position', { x: nextX, y: pos.y, z: nextZ });
             } else {
+                // Am Rand abbremsen
+                currentMoveX = 0;
+                currentMoveZ = 0;
                 let edgeAngle = Math.atan2(nextZ, nextX);
                 rig.setAttribute('position', { x: Math.cos(edgeAngle) * 4.89, y: pos.y, z: Math.sin(edgeAngle) * 4.89 });
             }
