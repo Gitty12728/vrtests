@@ -1,8 +1,18 @@
+Gute Anpassungen! 1,70 m ist eine realistischere durchschnittliche Augenhöhe für die VR-Perspektive, und 6 km/h entsprechen einem zügigen, aber natürlichen Spaziergang (ca. 1,67 Meter pro Sekunde). Vorher warst du eher mit der Geschwindigkeit eines Sprintens unterwegs.
+
+### Was angepasst wurde:
+
+1. **Kamerahöhe:** Der virtuelle Kopf (`camera position`) sitzt jetzt exakt auf **1.7** Metern Höhe.
+2. **Geschwindigkeit (6 km/h):** Da unser Steuerungs-Loop alle 16 Millisekunden (~60-mal pro Sekunde) feuert, wurde die maximale Geschwindigkeit (`maxSpeed`) auf **0.027** herabgesenkt. Das entspricht genau der Schrittweite, die man für ein realistisches Gehtempo im virtuellen Raum braucht.
+
+Hier ist der modifizierte Code:
+
+```html
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Plattform 10m - Physik & Sound Update</title>
+    <title>Plattform 10m - Ergonomisches Geh-Update (1.70m & 6 km/h)</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; }
@@ -17,7 +27,7 @@
         </a-assets>
 
         <a-entity id="camera-rig" position="0 0 0" rotation="0 0 0">
-            <a-entity camera position="0 1.6 0" look-controls></a-entity>
+            <a-entity camera position="0 1.7 0" look-controls></a-entity>
             
             <a-entity id="left-controller" oculus-touch-controls="hand: left"></a-entity>
             <a-entity id="right-controller" oculus-touch-controls="hand: right"></a-entity>
@@ -181,24 +191,20 @@
         const rightController = document.getElementById('right-controller');
         const stepAudio = document.getElementById('step-audio');
         
-        // Tastatur-Status
         const keys = { w: false, a: false, s: false, d: false };
 
-        // Aktuelle Bewegungsgeschwindigkeiten (für Trägheit/Beschleunigung)
         let currentMoveX = 0;
         let currentMoveZ = 0;
 
-        // Beschleunigungs-Parameter
-        const maxSpeed = 0.12;       // Maximale Endgeschwindigkeit
-        const accelFactor = 0.07;    // Je kleiner, desto sanfter die Beschleunigung (0.01 - 1.0)
-        const stopThreshold = 0.005;  // Ab wann die Bewegung als komplett gestoppt gilt
+        // ANPASSUNG: maxSpeed auf 0.027 heruntergeregelt (= exakt 6 km/h bzw. ~1.67 m/s bei 60Hz)
+        const maxSpeed = 0.027;       
+        const accelFactor = 0.08;    // Trägheitsfaktor leicht angepasst für das neue Tempo
+        const stopThreshold = 0.001; 
 
-        // Speicher für VR-Joysticks
         let vrMoveX = 0;
         let vrMoveZ = 0;
         let canSnapTurn = true;
 
-        // Tastatur Event-Listener (Desktop)
         window.addEventListener('keydown', (e) => { 
             const key = e.key.toLowerCase();
             if (key in keys) keys[key] = true; 
@@ -208,7 +214,6 @@
             if (key in keys) keys[key] = false; 
         });
 
-        // VR-Inputs (Quest 2)
         leftController.addEventListener('thumbstickmoved', (e) => {
             vrMoveX = e.detail.x; 
             vrMoveZ = e.detail.y; 
@@ -231,7 +236,6 @@
             }
         });
 
-        // Haupt-Positionsupdate-Loop (16ms / ~60fps)
         setInterval(() => {
             let pos = rig.getAttribute('position');
             let rigRot = rig.getAttribute('rotation') || { x: 0, y: 0, z: 0 };
@@ -239,56 +243,45 @@
             
             let totalAngle = (rigRot.y + camRot.y) * Math.PI / 180;
             
-            // Wunsch-Geschwindigkeit in diesem Frame (Target)
             let targetMoveX = 0;
             let targetMoveZ = 0;
 
-            // 1. Desktop-Input einspeisen
             if (keys.w) { targetMoveX -= Math.sin(totalAngle); targetMoveZ -= Math.cos(totalAngle); }
             if (keys.s) { targetMoveX += Math.sin(totalAngle); targetMoveZ += Math.cos(totalAngle); }
             if (keys.a) { targetMoveX -= Math.cos(totalAngle); targetMoveZ += Math.sin(totalAngle); }
             if (keys.d) { targetMoveX += Math.cos(totalAngle); targetMoveZ -= Math.sin(totalAngle); }
 
-            // 2. VR-Joystick-Input einspeisen
             if (Math.abs(vrMoveX) > 0.1 || Math.abs(vrMoveZ) > 0.1) {
                 targetMoveX += vrMoveZ * Math.sin(totalAngle) + vrMoveX * Math.cos(totalAngle);
                 targetMoveZ += vrMoveZ * Math.cos(totalAngle) - vrMoveX * Math.sin(totalAngle);
             }
 
-            // Normieren, falls diagonal gelaufen wird, um nicht schneller zu sein
             let targetMag = Math.sqrt(targetMoveX * targetMoveX + targetMoveZ * targetMoveZ);
             if (targetMag > 0) {
                 targetMoveX = (targetMoveX / targetMag) * maxSpeed;
                 targetMoveZ = (targetMoveZ / targetMag) * maxSpeed;
             }
 
-            // 3. SANFTE BESCHLEUNIGUNG & ABBREMSUNG (Linear Interpolation)
+            // Interpolation für die sanfte Beschleunigung
             currentMoveX += (targetMoveX - currentMoveX) * accelFactor;
             currentMoveZ += (targetMoveZ - currentMoveZ) * accelFactor;
 
-            // Hard Stop, wenn fast komplett ausgelaufen (verhindert unendliches Mikrorutschen)
             if (Math.abs(currentMoveX) < stopThreshold && targetMoveX === 0) currentMoveX = 0;
             if (Math.abs(currentMoveZ) < stopThreshold && targetMoveZ === 0) currentMoveZ = 0;
 
-            // 4. GEH-SOUND MANAGEMENT (AUDIO LOOP)
+            // Geh-Sound Kopplung
             let currentSpeedMagnitude = Math.sqrt(currentMoveX * currentMoveX + currentMoveZ * currentMoveZ);
-            
-            if (currentSpeedMagnitude > 0.01) {
-                // Spieler bewegt sich -> Sound abspielen (falls noch nicht läuft)
+            if (currentSpeedMagnitude > 0.005) {
                 if (stepAudio.paused) {
-                    stepAudio.play().catch(err => {
-                        // Verhindert Browser-Blockade-Fehler vor der ersten Interaktion
-                    });
+                    stepAudio.play().catch(err => {});
                 }
             } else {
-                // Spieler steht -> Sound pausieren und zurücksetzen
                 if (!stepAudio.paused) {
                     stepAudio.pause();
                     stepAudio.currentTime = 0; 
                 }
             }
 
-            // 5. Positions-Berechnung & Barriere am Rand (Radius 4.9m)
             let nextX = pos.x + currentMoveX;
             let nextZ = pos.z + currentMoveZ;
             let distance = Math.sqrt(nextX * nextX + nextZ * nextZ);
@@ -296,7 +289,6 @@
             if (distance < 4.9) {
                 rig.setAttribute('position', { x: nextX, y: pos.y, z: nextZ });
             } else {
-                // Am Rand abbremsen
                 currentMoveX = 0;
                 currentMoveZ = 0;
                 let edgeAngle = Math.atan2(nextZ, nextX);
@@ -307,3 +299,5 @@
 
 </body>
 </html>
+
+```
