@@ -1,195 +1,225 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
   <head>
-    <meta charset="utf-8">
-    <title>A-Frame VR - Tanzende Puppen (Quest 2 Finale)</title>
-    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
-
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>p2vr VR Umgebung - Tanzende Puppen</title>
+    
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+    
     <script>
-      // Universelle, doppelt abgesicherte Höhensteuerung für Quest 2
-      AFRAME.registerComponent('quest-height-fix', {
+      AFRAME.registerComponent('quest-stick-controls', {
+        schema: {
+          speed: { type: 'number', default: 3.0 },
+          snapAngle: { type: 'number', default: 30 },
+          cooldown: { type: 'number', default: 300 },
+          heightStep: { type: 'number', default: 0.2 },
+          easing: { type: 'number', default: 0.08 }
+        },
         init: function () {
-          this.rigEl = document.getElementById('rig');
+          this.lastTurn = 0;
+          this.moveDir = new AFRAME.THREE.Vector3();
+          this.targetVelocity = new AFRAME.THREE.Vector3();
+          this.currentVelocity = new AFRAME.THREE.Vector3();
+          this.camQuat = new AFRAME.THREE.Quaternion();
+          this.cameraEl = this.el.querySelector('[camera]');
+          this.soundPlaying = false;
+          
+          this.leftStick = { x: 0, y: 0 };
+          this.rightStick = { x: 0 };
+
           this.aPressed = false;
           this.bPressed = false;
 
-          // Event-Fallback Methode 1: Direktes Lauschen auf A-Frame Events am Controller
-          // Das fängt die Klicks ab, sobald A-Frame die Hände initialisiert hat.
-          this.setupControllerListeners();
-        },
+          const leftHand = document.querySelector('#leftHand');
+          const rightHand = document.querySelector('#rightHand');
 
-        setupControllerListeners: function () {
-          // Wir warten, bis die Szene komplett bereit ist
-          this.el.sceneEl.addEventListener('enter-vr', () => {
-            const rightController = document.getElementById('right-hand');
-            if (rightController) {
-              // Event für die A-Taste
-              rightController.addEventListener('abuttondown', () => {
-                this.changeHeight(0.15);
-              });
-              // Event für die B-Taste
-              rightController.addEventListener('bbuttondown', () => {
-                this.changeHeight(-0.15);
-              });
+          leftHand.addEventListener('axismove', (evt) => {
+            if (evt.detail.axis.length >= 4) {
+              this.leftStick.x = evt.detail.axis[2];
+              this.leftStick.y = evt.detail.axis[3];
+            } else {
+              this.leftStick.x = evt.detail.axis[0];
+              this.leftStick.y = evt.detail.axis[1];
+            }
+          });
+
+          rightHand.addEventListener('axismove', (evt) => {
+            if (evt.detail.axis.length >= 4) {
+              this.rightStick.x = evt.detail.axis[2];
+            } else {
+              this.rightStick.x = evt.detail.axis[0];
+            }
+          });
+
+          window.addEventListener('keydown', (evt) => {
+            if (evt.code === 'Space') {
+              evt.preventDefault();
+              this.el.object3D.position.y += this.data.heightStep;
+            }
+            if (evt.code === 'ControlLeft' || evt.code === 'ControlRight') {
+              evt.preventDefault();
+              this.el.object3D.position.y -= this.data.heightStep;
             }
           });
         },
-        
-        // Methode 2: Hardware-Direktabfrage als absoluter Sicherheits-Fallback
-        tick: function () {
-          if (!this.el.sceneEl.is('vr-mode')) return;
-          
-          const session = this.el.sceneEl.xrSession;
-          if (!session || !session.inputSources) return;
+        tick: function (time, delta) {
+          if (this.el.sceneEl.is('vr-mode')) {
+            const session = this.el.sceneEl.xrSession;
+            if (session && session.inputSources) {
+              for (let i = 0; i < session.inputSources.length; i++) {
+                const inputSource = session.inputSources[i];
+                
+                if (inputSource.handedness === 'right' && inputSource.gamepad) {
+                  const buttons = inputSource.gamepad.buttons;
 
-          for (let i = 0; i < session.inputSources.length; i++) {
-            const inputSource = session.inputSources[i];
-            
-            if (inputSource.handedness === 'right' && inputSource.gamepad) {
-              const buttons = inputSource.gamepad.buttons;
-              
-              // Taste A (Index 4 im WebXR-Standard)
-              if (buttons[4] && buttons[4].pressed) {
-                if (!this.aPressed) {
-                  this.changeHeight(0.15);
-                  this.aPressed = true;
+                  // A-Taste (Index 4)
+                  if (buttons[4] && buttons[4].pressed) {
+                    if (!this.aPressed) {
+                      this.el.object3D.position.y += this.data.heightStep;
+                      this.aPressed = true;
+                    }
+                  } else {
+                    this.aPressed = false;
+                  }
+
+                  // B-Taste (Index 5)
+                  if (buttons[5] && buttons[5].pressed) {
+                    if (!this.bPressed) {
+                      this.el.object3D.position.y -= this.data.heightStep;
+                      this.bPressed = true;
+                    }
+                  } else {
+                    this.bPressed = false;
+                  }
                 }
-              } else {
-                this.aPressed = false;
-              }
-              
-              // Taste B (Index 5 im WebXR-Standard)
-              if (buttons[5] && buttons[5].pressed) {
-                if (!this.bPressed) {
-                  this.changeHeight(-0.15);
-                  this.bPressed = true;
-                }
-              } else {
-                this.bPressed = false;
               }
             }
           }
-        },
 
-        changeHeight: function (amount) {
-          if (this.rigEl) {
-            // Verändert die Position im 3D-Raum
-            this.rigEl.object3D.position.y += amount;
-            console.log("Höhe geändert auf: " + this.rigEl.object3D.position.y);
+          const moveX = Math.abs(this.leftStick.x) > 0.2 ? this.leftStick.x : 0;
+          const moveZ = Math.abs(this.leftStick.y) > 0.2 ? this.leftStick.y : 0;
+
+          this.targetVelocity.set(0, 0, 0);
+
+          if (moveX !== 0 || moveZ !== 0) {
+            if (this.cameraEl) {
+              this.cameraEl.object3D.getWorldQuaternion(this.camQuat);
+            } else {
+              this.camQuat.copy(this.el.object3D.quaternion);
+            }
+
+            this.moveDir.set(moveX, 0, moveZ);
+            this.moveDir.applyQuaternion(this.camQuat);
+            this.moveDir.y = 0;
+            this.moveDir.normalize();
+
+            this.targetVelocity.copy(this.moveDir).multiplyScalar(this.data.speed);
+          }
+
+          this.currentVelocity.lerp(this.targetVelocity, this.data.easing);
+
+          if (this.currentVelocity.lengthSq() > 0.05) {
+            if (!this.soundPlaying) {
+              this.el.components.sound.playSound();
+              this.soundPlaying = true;
+            }
+          } else {
+            if (this.soundPlaying) {
+              this.el.components.sound.stopSound();
+              this.soundPlaying = false;
+            }
+          }
+
+          if (this.currentVelocity.lengthSq() > 0.0001) {
+            const deltaSeconds = delta / 1000;
+            this.el.object3D.position.addScaledVector(this.currentVelocity, deltaSeconds);
+          }
+
+          const turnX = this.rightStick.x;
+          if (Math.abs(turnX) > 0.7 && time - this.lastTurn > this.data.cooldown) {
+            const direction = turnX > 0 ? -1 : 1;
+            const turnAngle = (this.data.snapAngle * direction) * (Math.PI / 180);
+            this.el.object3D.rotation.y += turnAngle;
+            this.lastTurn = time;
           }
         }
       });
     </script>
 
     <style>
-      #ui-container {
+      body { margin: 0; overflow: hidden; }
+      .hint { position: absolute; left: 16px; top: 16px; color: white; font-family: sans-serif; z-index: 10; pointer-events: none; }
+      .loading-overlay {
         position: absolute;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 1000;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.86);
+        color: white;
         display: flex;
-        gap: 15px;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
         font-family: sans-serif;
+        z-index: 20;
+        padding: 24px;
       }
-      .anim-btn {
-        background: rgba(255, 255, 255, 0.9);
-        border: 2px solid #2e7d32;
-        border-radius: 8px;
-        color: #1b5e20;
-        padding: 12px 24px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      }
-      .anim-btn:hover { background: #2e7d32; color: white; }
     </style>
   </head>
   <body>
-
-    <div id="ui-container">
-      <button class="anim-btn" onclick="playAnimation(0)">Animation 1</button>
-      <button class="anim-btn" onclick="playAnimation(1)">Animation 2</button>
-      <button class="anim-btn" onclick="playAnimation(2)">Animation 3</button>
+    <div class="hint">
+      VR: Links = bewegen, Rechts = Snap Turn | A / B = hoch / runter <br />
+      Desktop: WASD + Maus drehen | Leertaste = hoch, Strg = runter
     </div>
 
-    <a-scene webxr="optionalFeatures: local-floor, bounded-floor" quest-height-fix>
+    <div class="loading-overlay" id="loadingOverlay">
+      <span>Lade 3D-Modell, bitte warten...</span>
+    </div>
+
+    <a-scene background="color: #111" vr-mode-ui="enabled: true" renderer="colorManagement: true; toneMapping: ACESFilmic;" loading-screen="enabled: false">
       <a-assets>
-        <a-asset-item id="frauen-model" src="tanzende puppen.glb"></a-asset-item>
+        <a-asset-item id="sceneModel" 
+                      crossorigin="anonymous" 
+                      timeout="600000" 
+                      src="tanzendepuppen.glb"></a-asset-item>
+        
+        <audio id="stepSound" src="step.mp3" preload="auto"></audio>
       </a-assets>
 
+      <a-entity light="type: ambient; intensity: 0.7"></a-entity>
+      <a-entity light="type: directional; intensity: 1" position="0 5 3" rotation="-45 0 0"></a-entity>
+      <a-entity light="type: directional; intensity: 0.4" position="-3 4 -2"></a-entity>
+
       <a-entity id="rig" 
-                movement-controls="controls: checkpoint, gamepad, keyboard; speed: 0.15;" 
-                position="0 0 4">
-        
-        <a-entity camera 
-                  position="0 1.6 0" 
-                  look-controls="pointerLockEnabled: false">
-        </a-entity>
+                position="0 0 0" 
+                quest-stick-controls="speed: 3.0; snapAngle: 30; cooldown: 300; heightStep: 0.2; easing: 0.08"
+                sound="src: #stepSound; loop: true; autoplay: false; volume: 1">
+                
+        <a-entity id="camera" position="0 1.8 0" camera look-controls="pointerLockEnabled: true; reverseMouseDrag: false" wasd-controls="enabled: true"></a-entity>
 
-        <a-entity id="left-hand"
-                  oculus-touch-controls="hand: left" 
-                  gamepad-controls="controller: 0">
-        </a-entity>
-
-        <a-entity id="right-hand"
-                  oculus-touch-controls="hand: right" 
-                  snap-turn-controls="target: #rig; turnAngle: 45">
-        </a-entity>
-        
+        <a-entity id="leftHand" oculus-touch-controls="hand: left; model: true"></a-entity>
+        <a-entity id="rightHand" oculus-touch-controls="hand: right; model: true"></a-entity>
       </a-entity>
-      <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
-      <a-light type="directional" color="#ffffff" intensity="0.8" position="-1 4 2"></a-light>
 
-      <a-sphere id="hügel" 
-                position="0 -2 -4" 
-                radius="4" 
-                scale="2 0.6 2" 
-                color="#558b2f" 
-                roughness="0.9">
-      </a-sphere>
-
-      <a-plane position="0 0 0" 
-               rotation="-90 0 0" 
-               width="100" 
-               height="100" 
-               color="#689f38" 
-               roughness="1">
-      </a-plane>
-
-      <a-sky color="#81d4fa"></a-sky>
-
-      <a-entity id="frauen" 
-                gltf-model="#frauen-model" 
-                position="0 0.3 -4" 
+      <a-entity gltf-model="#sceneModel" 
+                position="0 0 -4" 
+                rotation="0 0 0" 
                 scale="1 1 1"
-                animation-mixer="clip: *; loop: repeat; timeScale: 1">
+                animation-mixer="clip: *; loop: repeat">
       </a-entity>
+
+      <a-plane position="0 0 0" rotation="-90 0 0" width="50" height="50" color="#444" shadow="receive: true"></a-plane>
+      <a-sky color="#000"></a-sky>
     </a-scene>
 
     <script>
-      function playAnimation(index) {
-        const modelEl = document.querySelector('#frauen');
-        const modelComponent = modelEl.components['gltf-model'];
+      document.addEventListener('DOMContentLoaded', function () {
+        const overlay = document.getElementById('loadingOverlay');
+        const scene = document.querySelector('a-scene');
         
-        if (modelComponent && modelEl.object3D) {
-          const mesh = modelEl.object3D.children[0];
-          if (mesh && mesh.animations && mesh.animations.length > 0) {
-            if (mesh.animations[index]) {
-              const clipName = mesh.animations[index].name;
-              modelEl.setAttribute('animation-mixer', {
-                clip: clipName,
-                crossFadeDuration: 0.5
-              });
-            }
-          }
-        }
-      }
-
-      document.querySelector('#frauen').addEventListener('model-loaded', () => {
-        setTimeout(() => playAnimation(0), 500);
+        scene.addEventListener('loaded', function () {
+          overlay.style.display = 'none';
+        });
       });
     </script>
   </body>
