@@ -2,56 +2,67 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>A-Frame VR - Tanzende Puppen (Quest 2 + Höhensteuerung)</title>
+    <title>A-Frame VR - Tanzende Puppen (Quest 2 Finale)</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
 
     <script>
-      // Dieses Skript liest die Tasten direkt aus der Hardware (Quest 2 Controller)
+      // Universelle, doppelt abgesicherte Höhensteuerung für Quest 2
       AFRAME.registerComponent('quest-height-fix', {
         init: function () {
           this.rigEl = document.getElementById('rig');
-          // Zustandsspeicher, damit ein Tastendruck nicht unendlich oft pro Sekunde feuert
           this.aPressed = false;
           this.bPressed = false;
+
+          // Event-Fallback Methode 1: Direktes Lauschen auf A-Frame Events am Controller
+          // Das fängt die Klicks ab, sobald A-Frame die Hände initialisiert hat.
+          this.setupControllerListeners();
+        },
+
+        setupControllerListeners: function () {
+          // Wir warten, bis die Szene komplett bereit ist
+          this.el.sceneEl.addEventListener('enter-vr', () => {
+            const rightController = document.getElementById('right-hand');
+            if (rightController) {
+              // Event für die A-Taste
+              rightController.addEventListener('abuttondown', () => {
+                this.changeHeight(0.15);
+              });
+              // Event für die B-Taste
+              rightController.addEventListener('bbuttondown', () => {
+                this.changeHeight(-0.15);
+              });
+            }
+          });
         },
         
+        // Methode 2: Hardware-Direktabfrage als absoluter Sicherheits-Fallback
         tick: function () {
-          // Prüfen, ob wir uns im VR-Modus befinden und Gamepads existieren
           if (!this.el.sceneEl.is('vr-mode')) return;
           
           const session = this.el.sceneEl.xrSession;
-          if (!session) return;
-          
-          const inputSources = session.inputSources;
-          if (!inputSources) return;
+          if (!session || !session.inputSources) return;
 
-          // Wir gehen alle angeschlossenen Controller durch
-          for (let i = 0; i < inputSources.length; i++) {
-            const inputSource = inputSources[i];
+          for (let i = 0; i < session.inputSources.length; i++) {
+            const inputSource = session.inputSources[i];
             
-            // Uns interessiert nur der rechte Controller (hand: "right")
             if (inputSource.handedness === 'right' && inputSource.gamepad) {
               const buttons = inputSource.gamepad.buttons;
               
-              // Standard WebXR Mapping für Oculus/Meta Quest:
-              // buttons[4] ist die A-Taste
-              // buttons[5] ist die B-Taste
-              
-              // --- A-TASTE (HOCH) ---
+              // Taste A (Index 4 im WebXR-Standard)
               if (buttons[4] && buttons[4].pressed) {
-                if (!this.aPressed) { // Nur beim ersten Runterdrücken ausführen
-                  this.changeHeight(0.10);
+                if (!this.aPressed) {
+                  this.changeHeight(0.15);
                   this.aPressed = true;
                 }
               } else {
-                this.aPressed = false; // Zurücksetzen, wenn losgelassen
+                this.aPressed = false;
               }
               
-              // --- B-TASTE (RUNTER) ---
+              // Taste B (Index 5 im WebXR-Standard)
               if (buttons[5] && buttons[5].pressed) {
                 if (!this.bPressed) {
-                  this.changeHeight(-0.10);
+                  this.changeHeight(-0.15);
                   this.bPressed = true;
                 }
               } else {
@@ -63,16 +74,15 @@
 
         changeHeight: function (amount) {
           if (this.rigEl) {
-            // Direktes Verändern der 3D-Matrix (das funktioniert immer, ohne Glitch)
+            // Verändert die Position im 3D-Raum
             this.rigEl.object3D.position.y += amount;
-            console.log("Höhe geändert um: " + amount + "m. Aktuelle Höhe: " + this.rigEl.object3D.position.y);
+            console.log("Höhe geändert auf: " + this.rigEl.object3D.position.y);
           }
         }
       });
     </script>
 
     <style>
-      /* Desktop-UI für den Test ohne Brille */
       #ui-container {
         position: absolute;
         bottom: 20px;
@@ -107,7 +117,7 @@
 
     <a-scene webxr="optionalFeatures: local-floor, bounded-floor" quest-height-fix>
       <a-assets>
-        <a-asset-item id="frauen-model" src="tanzendepuppen.glb"></a-asset-item>
+        <a-asset-item id="frauen-model" src="tanzende puppen.glb"></a-asset-item>
       </a-assets>
 
       <a-entity id="rig" 
@@ -119,11 +129,13 @@
                   look-controls="pointerLockEnabled: false">
         </a-entity>
 
-        <a-entity oculus-touch-controls="hand: left" 
+        <a-entity id="left-hand"
+                  oculus-touch-controls="hand: left" 
                   gamepad-controls="controller: 0">
         </a-entity>
 
-        <a-entity oculus-touch-controls="hand: right" 
+        <a-entity id="right-hand"
+                  oculus-touch-controls="hand: right" 
                   snap-turn-controls="target: #rig; turnAngle: 45">
         </a-entity>
         
@@ -158,7 +170,6 @@
     </a-scene>
 
     <script>
-      // Funktion zum Umschalten der 3 im GLB enthaltenen Animationen
       function playAnimation(index) {
         const modelEl = document.querySelector('#frauen');
         const modelComponent = modelEl.components['gltf-model'];
@@ -172,13 +183,11 @@
                 clip: clipName,
                 crossFadeDuration: 0.5
               });
-              console.log("Spiele Animation: " + clipName);
             }
           }
         }
       }
 
-      // Automatisch die erste Animation starten, sobald das Modell da ist
       document.querySelector('#frauen').addEventListener('model-loaded', () => {
         setTimeout(() => playAnimation(0), 500);
       });
