@@ -1,123 +1,150 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>A-Frame VR - Tanzende Puppen (Quest 2)</title>
-    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
+  <head>
+    <meta charset="utf-8">
+    <title>A-Frame VR - Tanzende Puppen (Quest 2 + Höhensteuerung)</title>
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
 
-    <style>
-      /* UI-Buttons für den Desktop-Modus */
-      #ui-container {
-        position: absolute;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 1000;
-        display: flex;
-        gap: 15px;
-        font-family: sans-serif;
-      }
-      .anim-btn {
-        background: rgba(255, 255, 255, 0.9);
-        border: 2px solid #2e7d32;
-        border-radius: 8px;
-        color: #1b5e20;
-        padding: 12px 24px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      }
-      .anim-btn:hover { background: #2e7d32; color: white; }
-    </style>
-  </head>
-  <body>
+    <script>
+      // Neue, robustere Komponente für die Quest 2 Buttons
+      AFRAME.registerComponent('height-controls', {
+        init: function () {
+          this.rigEl = document.querySelector('#rig');
+          
+          // Wir lauschen auf das universelle 'buttonchanged' Event
+          this.el.addEventListener('buttonchanged', (evt) => {
+            // ID 4 ist auf dem rechten Touch-Controller üblicherweise der A-Button
+            // ID 5 ist der B-Button
+            if (evt.detail.id === 4 && evt.detail.state.pressed) {
+              this.changeHeight(0.10); // +10 cm
+            }
+            if (evt.detail.id === 5 && evt.detail.state.pressed) {
+              this.changeHeight(-0.10); // -10 cm
+            }
+          });
+        },
 
-    <div id="ui-container">
-      <button class="anim-btn" onclick="playAnimation(0)">Animation 1</button>
-      <button class="anim-btn" onclick="playAnimation(1)">Animation 2</button>
-      <button class="anim-btn" onclick="playAnimation(2)">Animation 3</button>
-    </div>
+        changeHeight: function (amount) {
+          if (this.rigEl) {
+            var currentPos = this.rigEl.getAttribute('position');
+            currentPos.y += amount;
+            this.rigEl.setAttribute('position', currentPos);
+            console.log("Neue Höhe gesetzt: " + currentPos.y);
+          }
+        }
+      });
+    </script>
 
-    <a-scene webxr="optionalFeatures: local-floor, bounded-floor">
-      <a-assets>
-        <a-asset-item id="frauen-model" src="tanzendepuppen.glb"></a-asset-item>
-      </a-assets>
+    <style>
+      #ui-container {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        display: flex;
+        gap: 15px;
+        font-family: sans-serif;
+      }
+      .anim-btn {
+        background: rgba(255, 255, 255, 0.9);
+        border: 2px solid #2e7d32;
+        border-radius: 8px;
+        color: #1b5e20;
+        padding: 12px 24px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      }
+      .anim-btn:hover { background: #2e7d32; color: white; }
+    </style>
+  </head>
+  <body>
 
-      <a-entity id="rig" 
-                movement-controls="controls: checkpoint, gamepad, keyboard; speed: 0.15;" 
-                position="0 0 4">
-        
-        <a-entity camera 
-                  position="0 1.6 0" 
-                  look-controls="pointerLockEnabled: false">
-        </a-entity>
+    <div id="ui-container">
+      <button class="anim-btn" onclick="playAnimation(0)">Animation 1</button>
+      <button class="anim-btn" onclick="playAnimation(1)">Animation 2</button>
+      <button class="anim-btn" onclick="playAnimation(2)">Animation 3</button>
+    </div>
 
-        <a-entity oculus-touch-controls="hand: left" 
-                  gamepad-controls="controller: 0">
-        </a-entity>
+    <a-scene webxr="optionalFeatures: local-floor, bounded-floor">
+      <a-assets>
+        <a-asset-item id="frauen-model" src="tanzendepuppen.glb"></a-asset-item>
+      </a-assets>
 
-        <a-entity oculus-touch-controls="hand: right" 
-                  snap-turn-controls="target: #rig; turnAngle: 45">
-        </a-entity>
-        
-      </a-entity>
-      <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
-      <a-light type="directional" color="#ffffff" intensity="0.8" position="-1 4 2"></a-light>
+      <a-entity id="rig" 
+                movement-controls="controls: checkpoint, gamepad, keyboard; speed: 0.15;" 
+                position="0 0 4">
+        
+        <a-entity camera 
+                  position="0 1.6 0" 
+                  look-controls="pointerLockEnabled: false">
+        </a-entity>
 
-      <a-sphere id="hügel" 
-                position="0 -2 -4" 
-                radius="4" 
-                scale="2 0.6 2" 
-                color="#558b2f" 
-                roughness="0.9">
-      </a-sphere>
+        <a-entity oculus-touch-controls="hand: left" 
+                  gamepad-controls="controller: 0">
+        </a-entity>
 
-      <a-plane position="0 0 0" 
-               rotation="-90 0 0" 
-               width="100" 
-               height="100" 
-               color="#689f38" 
-               roughness="1">
-      </a-plane>
+        <a-entity oculus-touch-controls="hand: right" 
+                  snap-turn-controls="target: #rig; turnAngle: 45"
+                  height-controls>
+        </a-entity>
+        
+      </a-entity>
+      <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
+      <a-light type="directional" color="#ffffff" intensity="0.8" position="-1 4 2"></a-light>
 
-      <a-sky color="#81d4fa"></a-sky>
+      <a-sphere id="hügel" 
+                position="0 -2 -4" 
+                radius="4" 
+                scale="2 0.6 2" 
+                color="#558b2f" 
+                roughness="0.9">
+      </a-sphere>
 
-      <a-entity id="frauen" 
-                gltf-model="#frauen-model" 
-                position="0 0.3 -4" 
-                scale="1 1 1"
-                animation-mixer="clip: *; loop: repeat; timeScale: 1">
-      </a-entity>
-    </a-scene>
+      <a-plane position="0 0 0" 
+               rotation="-90 0 0" 
+               width="100" 
+               height="100" 
+               color="#689f38" 
+               roughness="1">
+      </a-plane>
 
-    <script>
-      // Animations-Steuerung (Bleibt gleich wie zuvor)
-      function playAnimation(index) {
-        const modelEl = document.querySelector('#frauen');
-        const modelComponent = modelEl.components['gltf-model'];
-        
-        if (modelComponent && modelEl.object3D) {
-          const mesh = modelEl.object3D.children[0];
-          if (mesh && mesh.animations && mesh.animations.length > 0) {
-            if (mesh.animations[index]) {
-              const clipName = mesh.animations[index].name;
-              modelEl.setAttribute('animation-mixer', {
-                clip: clipName,
-                crossFadeDuration: 0.5
-              });
-              console.log("Spiele Animation: " + clipName);
-            }
-          }
-        }
-      }
+      <a-sky color="#81d4fa"></a-sky>
 
-      document.querySelector('#frauen').addEventListener('model-loaded', () => {
-        setTimeout(() => playAnimation(0), 500);
-      });
-    </script>
-  </body>
+      <a-entity id="frauen" 
+                gltf-model="#frauen-model" 
+                position="0 0.3 -4" 
+                scale="1 1 1"
+                animation-mixer="clip: *; loop: repeat; timeScale: 1">
+      </a-entity>
+    </a-scene>
+
+    <script>
+      function playAnimation(index) {
+        const modelEl = document.querySelector('#frauen');
+        const modelComponent = modelEl.components['gltf-model'];
+        
+        if (modelComponent && modelEl.object3D) {
+          const mesh = modelEl.object3D.children[0];
+          if (mesh && mesh.animations && mesh.animations.length > 0) {
+            if (mesh.animations[index]) {
+              const clipName = mesh.animations[index].name;
+              modelEl.setAttribute('animation-mixer', {
+                clip: clipName,
+                crossFadeDuration: 0.5
+              });
+              console.log("Spiele Animation: " + clipName);
+            }
+          }
+        }
+      }
+
+      document.querySelector('#frauen').addEventListener('model-loaded', () => {
+        setTimeout(() => playAnimation(0), 500);
+      });
+    </script>
+  </body>
 </html>
-
-schreib Das bitte so um dass ich mit dem rechten Controller bei a mich 10 cm nach oben bewege und bei B mich wieder 10 cm nach unten.
