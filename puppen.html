@@ -9,7 +9,6 @@
     <script src="https://unpkg.com/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
     
     <script>
-      // Copilots originale Steuerung + Quest 2 Button-Fix
       AFRAME.registerComponent('quest-stick-controls', {
         schema: {
           speed: { type: 'number', default: 3.0 },
@@ -30,12 +29,10 @@
           this.leftStick = { x: 0, y: 0 };
           this.rightStick = { x: 0 };
 
-          this.aPressed = false;
-          this.bPressed = false;
-
           const leftHand = document.querySelector('#leftHand');
           const rightHand = document.querySelector('#rightHand');
 
+          // VR: LINKER STICK (Bewegung)
           leftHand.addEventListener('axismove', (evt) => {
             if (evt.detail.axis.length >= 4) {
               this.leftStick.x = evt.detail.axis[2];
@@ -46,6 +43,7 @@
             }
           });
 
+          // VR: RECHTER STICK (Snap Turn)
           rightHand.addEventListener('axismove', (evt) => {
             if (evt.detail.axis.length >= 4) {
               this.rightStick.x = evt.detail.axis[2];
@@ -54,11 +52,24 @@
             }
           });
 
+          // VR: RECHTER CONTROLLER - A-Button (Hoch)
+          rightHand.addEventListener('abuttondown', () => {
+            this.el.object3D.position.y += this.data.heightStep;
+          });
+
+          // VR: RECHTER CONTROLLER - B-Button (Runter)
+          rightHand.addEventListener('bbuttondown', () => {
+            this.el.object3D.position.y -= this.data.heightStep;
+          });
+
+          // DESKTOP: TASTATUR (Leertaste / Strg)
           window.addEventListener('keydown', (evt) => {
+            // Leertaste (Space) -> Nach oben bewegen
             if (evt.code === 'Space') {
-              evt.preventDefault();
+              evt.preventDefault(); // Verhindert das Scrollen der Seite
               this.el.object3D.position.y += this.data.heightStep;
             }
+            // Strg-Taste (Control) -> Nach unten bewegen
             if (evt.code === 'ControlLeft' || evt.code === 'ControlRight') {
               evt.preventDefault();
               this.el.object3D.position.y -= this.data.heightStep;
@@ -66,38 +77,7 @@
           });
         },
         tick: function (time, delta) {
-          if (this.el.sceneEl.is('vr-mode')) {
-            const session = this.el.sceneEl.xrSession;
-            if (session && session.inputSources) {
-              for (let i = 0; i < session.inputSources.length; i++) {
-                const inputSource = session.inputSources[i];
-                if (inputSource.handedness === 'right' && inputSource.gamepad) {
-                  const buttons = inputSource.gamepad.buttons;
-
-                  // A-Taste -> Hoch
-                  if (buttons[4] && buttons[4].pressed) {
-                    if (!this.aPressed) {
-                      this.el.object3D.position.y += this.data.heightStep;
-                      this.aPressed = true;
-                    }
-                  } else {
-                    this.aPressed = false;
-                  }
-
-                  // B-Taste -> Runter
-                  if (buttons[5] && buttons[5].pressed) {
-                    if (!this.bPressed) {
-                      this.el.object3D.position.y -= this.data.heightStep;
-                      this.bPressed = true;
-                    }
-                  } else {
-                    this.bPressed = false;
-                  }
-                }
-              }
-            }
-          }
-
+          // 1. Ziel-Geschwindigkeit berechnen
           const moveX = Math.abs(this.leftStick.x) > 0.2 ? this.leftStick.x : 0;
           const moveZ = Math.abs(this.leftStick.y) > 0.2 ? this.leftStick.y : 0;
 
@@ -118,8 +98,10 @@
             this.targetVelocity.copy(this.moveDir).multiplyScalar(this.data.speed);
           }
 
+          // Trägheit (Lerp) für geschmeidigen Anlauf
           this.currentVelocity.lerp(this.targetVelocity, this.data.easing);
 
+          // Audio-Steuerung (Schrittgeräusch)
           if (this.currentVelocity.lengthSq() > 0.05) {
             if (!this.soundPlaying) {
               this.el.components.sound.playSound();
@@ -132,11 +114,13 @@
             }
           }
 
+          // Position updaten
           if (this.currentVelocity.lengthSq() > 0.0001) {
             const deltaSeconds = delta / 1000;
             this.el.object3D.position.addScaledVector(this.currentVelocity, deltaSeconds);
           }
 
+          // 2. Drehung (Rechter Stick)
           const turnX = this.rightStick.x;
           if (Math.abs(turnX) > 0.7 && time - this.lastTurn > this.data.cooldown) {
             const direction = turnX > 0 ? -1 : 1;
@@ -164,6 +148,7 @@
         z-index: 20;
         padding: 24px;
       }
+      .loading-overlay span { display: block; max-width: 520px; line-height: 1.5; font-size: 1.1rem; }
     </style>
   </head>
   <body>
@@ -173,12 +158,17 @@
     </div>
 
     <div class="loading-overlay" id="loadingOverlay">
-      <span>Lade 3D-Modell, bitte warten...</span>
+      <span id="loadingText">Lade 3D-Modell, bitte warten...</span>
     </div>
 
     <a-scene background="color: #111" vr-mode-ui="enabled: true" renderer="colorManagement: true; toneMapping: ACESFilmic;" loading-screen="enabled: false">
       <a-assets>
-        <a-asset-item id="sceneModel" crossorigin="anonymous" timeout="600000" src="tanzendepuppen.glb"></a-asset-item>
+        <a-asset-item id="sceneModel" 
+                      crossorigin="anonymous" 
+                      timeout="600000" 
+                      src="tanzendepuppen.glb"
+                      draco-decoder="src: https://www.gstatic.com/draco/versioned/decoders/1.5.6/"></a-asset-item>
+        
         <audio id="stepSound" src="step.mp3" preload="auto"></audio>
       </a-assets>
 
@@ -187,30 +177,19 @@
       <a-entity light="type: directional; intensity: 0.4" position="-3 4 -2"></a-entity>
 
       <a-entity id="rig" 
-                position="0 0 5" 
+                position="0 0 0" 
                 quest-stick-controls="speed: 3.0; snapAngle: 30; cooldown: 300; heightStep: 0.2; easing: 0.08"
                 sound="src: #stepSound; loop: true; autoplay: false; volume: 1">
                 
         <a-entity id="camera" position="0 1.8 0" camera look-controls="pointerLockEnabled: true; reverseMouseDrag: false" wasd-controls="enabled: true"></a-entity>
+
         <a-entity id="leftHand" oculus-touch-controls="hand: left; model: true"></a-entity>
         <a-entity id="rightHand" oculus-touch-controls="hand: right; model: true"></a-entity>
       </a-entity>
 
-      <a-cylinder id="podest" 
-                  position="0 0.005 0" 
-                  radius="25" 
-                  height="0.01" 
-                  color="#444" 
-                  roughness="0.8">
-      </a-cylinder>
+      <a-entity gltf-model="#sceneModel" position="0 0 0" rotation="0 180 0" scale="1 1 1" animation-mixer></a-entity>
 
-      <a-entity gltf-model="#sceneModel" 
-                position="0 0.01 0" 
-                rotation="0 180 0" 
-                scale="1 1 1"
-                animation-mixer="clip: *; loop: repeat">
-      </a-entity>
-
+      <a-plane position="0 0 0" rotation="-90 0 0" width="50" height="50" color="#444" shadow="receive: true"></a-plane>
       <a-sky color="#000"></a-sky>
     </a-scene>
 
