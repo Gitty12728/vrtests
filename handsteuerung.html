@@ -2,12 +2,12 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>VR Industrie-Training: MULTIPLAYER</title>
+  <title>VR Industrie-Training: MULTIPLAYER (FIXED)</title>
   
-  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.slim.js"></script>
-  <script src="https://unpkg.com/networked-aframe@^0.12.0/dist/networked-aframe.min.js"></script>
+  <script src="https://unpkg.com/networked-aframe@0.12.0/dist/networked-aframe.min.js"></script>
 
   <script>
     AFRAME.registerComponent('native-joint-physik', {
@@ -60,9 +60,8 @@
           this.el.object3D.rotation.z += deltaX * 8;
           this.lastX = currentX;
 
-          // MULTIPLAYER COMPONENT TRICK: 
-          // Wir sagen NAF, dass wir das Objekt verändert haben, damit es bei den anderen geupdated wird
-          if (this.el.components.networked) {
+          // Besitzrechte kurzzeitig übernehmen, um im Netzwerk zu senden
+          if (this.el.components.networked && !NAF.utils.isMine(this.el)) {
             NAF.utils.takeOwnership(this.el);
           }
         } else {
@@ -78,9 +77,9 @@
 <body>
 
   <a-scene networked-scene="
-    room: industrie-training-123;
+    room: privat-training-room-xyz999;
     debug: true;
-    adapter: wseasyrtc;
+    adapter: socketio;
     serverURL: https://naf.haydenlee.io/;
   " webxr="optionalFeatures: hand-tracking, local-floor;" renderer="colorManagement: true;">
     
@@ -105,7 +104,7 @@
     <a-entity light="type: spot; color: #ffffff; intensity: 6; angle: 40" position="0 4 -0.6" rotation="-90 0 0"></a-entity>
     <a-cylinder position="0 0.5 -0.6" radius="0.4" height="1" color="#181822"></a-cylinder>
 
-    <a-entity id="valve-system" position="0 1.35 -0.6" native-joint-physik networked="target: #valve-system; template: ''; owner: server">
+    <a-entity id="valve-system" position="0 1.35 -0.6" native-joint-physik>
       <a-torus id="valve-wheel" radius="0.32" radius-tubular="0.03" color="#ffcc00"></a-torus>
       <a-cylinder radius="0.018" height="0.64" color="#cca300" rotation="0 0 0"></a-cylinder>
       <a-cylinder radius="0.018" height="0.64" color="#cca300" rotation="0 0 90"></a-cylinder>
