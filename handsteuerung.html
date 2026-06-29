@@ -2,64 +2,79 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>VR Hand-Touch Rotation (Ohne Pinch)</title>
+  <title>VR Hand-Physik Rotation</title>
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   
   <script>
-    AFRAME.registerComponent('hand-touch-rotator', {
+    AFRAME.registerComponent('echte-hand-physik', {
       init: function () {
-        this.el = this.el;
+        // Referenzen zu den Händen holen
         this.rightHand = document.querySelector('#rightHand');
         this.leftHand = document.querySelector('#leftHand');
+        this.coreSphere = document.querySelector('#core-sphere');
         
         this.isTouching = false;
         this.lastX = 0;
-        this.activeHand = null;
+
+        // Vektoren für die exakte Welt-Positionsbestimmung erstellen
+        this.handPos = new THREE.Vector3();
+        this.objPos = new THREE.Vector3();
       },
 
-      // Die Tick-Funktion läuft mit 90Hz und misst einfach nur den physikalischen Abstand
       tick: function () {
-        var objPos = this.el.object3D.position;
+        if (!this.rightHand || !this.leftHand) return;
+
+        // 1. Hole die absolute Position des Objekts im Raum
+        this.el.object3D.getWorldPosition(this.objPos);
         
-        // 1. Prüfen, ob die rechte Hand nah genug am Objekt ist
-        var rightHandPos = this.rightHand.object3D.position;
-        var distRight = rightHandPos.distanceTo(objPos);
+        // 2. Hole die absolute Position der rechten Hand
+        this.rightHand.object3D.getWorldPosition(this.handPos);
+        var distRight = this.handPos.distanceTo(this.objPos);
         
-        // 2. Prüfen, ob die linke Hand nah genug am Objekt ist
-        var leftHandPos = this.leftHand.object3D.position;
-        var distLeft = leftHandPos.distanceTo(objPos);
+        // 3. Hole die absolute Position der linken Hand
+        var leftHandPos = new THREE.Vector3();
+        this.leftHand.object3D.getWorldPosition(leftHandPos);
+        var distLeft = leftHandPos.distanceTo(this.objPos);
         
-        // Wir definieren einen Berührungs-Radius von 35 cm um das Objektzentrum
-        var touchRadius = 0.35;
+        // Kontaktradius: 45 Zentimeter um das Objekt herum
+        var physikRadius = 0.45;
         
-        if (distRight < touchRadius) {
-          this.handleTouch(rightHandPos.x);
-        } else if (distLeft < touchRadius) {
-          this.handleTouch(leftHandPos.x);
+        if (distRight < physikRadius) {
+          this.registriereKollision(this.handPos.x);
+        } else if (distLeft < physikRadius) {
+          this.registriereKollision(leftHandPos.x);
         } else {
-          // Keine Hand berührt das Objekt
-          this.isTouching = false;
-          this.activeHand = null;
-          // Visuelles Feedback: Normaler Zustand
-          this.el.setAttribute('material', 'wireframe', false);
+          // Keine Berührung mehr -> Physik stoppt
+          if (this.isTouching) {
+            this.isTouching = false;
+            // Visuelles Feedback zurücksetzen (wieder neongrün glühen)
+            if (this.coreSphere) {
+              this.coreSphere.setAttribute('material', 'color', '#00ffcc');
+              this.coreSphere.setAttribute('material', 'emissive', '#00ffcc');
+            }
+          }
         }
       },
       
-      handleTouch: function(currentX) {
+      registriereKollision: function(aktuelleHandX) {
         if (!this.isTouching) {
           this.isTouching = true;
-          this.lastX = currentX;
-          // Visuelles Feedback: Objekt wird zum Gittermodell, wenn man es berührt
-          this.el.setAttribute('material', 'wireframe', true);
-        };
+          this.lastX = aktuelleHandX;
+          
+          // VISUELLES FEEDBACK: Kern glüht rot bei physischem Kontakt!
+          if (this.coreSphere) {
+            this.coreSphere.setAttribute('material', 'color', '#ff0055');
+            this.coreSphere.setAttribute('material', 'emissive', '#ff0055');
+          }
+        }
         
-        // Berechne die Handbewegung seit dem letzten Frame
-        var deltaX = currentX - this.lastX;
+        // Berechne den physikalischen Impuls (Bewegung auf der X-Achse)
+        var deltaX = aktuelleHandX - this.lastX;
         
-        // Drehe das Objekt (Multiplikator 8 für direkte Reaktion)
+        // Drehung direkt auf das 3D-Objekt übertragen
         this.el.object3D.rotation.y += deltaX * 8;
         
-        this.lastX = currentX;
+        this.lastX = aktuelleHandX;
       }
     });
   </script>
@@ -70,16 +85,21 @@
     
     <a-sky color="#020205"></a-sky>
     <a-grid width="30" height="30" color="#0a0a10" grid-color="#1a1a25"></a-grid>
+
     <a-entity light="type: ambient; color: #fff; intensity: 0.15"></a-entity>
-    <a-entity light="type: spot; color: #00ffff; intensity: 5; angle: 30" position="0 4 -0.5" rotation="-90 0 0"></a-entity>
+    <a-entity light="type: spot; color: #00ffff; intensity: 5; angle: 35; penumbra: 0.5" position="0 4 -0.5" rotation="-90 0 0"></a-entity>
 
-    <a-cylinder position="0 0.5 -0.5" radius="0.5" height="1" color="#111116"></a-cylinder>
+    <a-cylinder position="0 0.5 -0.5" radius="0.5" height="1" color="#111116" material="roughness: 0.5; metalness: 0.8;"></a-cylinder>
 
-    <a-entity id="tech-core" position="0 1.35 -0.5" hand-touch-rotator>
-      <a-sphere radius="0.12" color="#00ffcc" material="emissive: #00ffcc; emissiveIntensity: 0.3;"></a-sphere>
-      <a-torus radius="0.3" radius-tubular="0.02" color="#778899" rotation="30 45 0"></a-torus>
-      <a-torus radius="0.3" radius-tubular="0.02" color="#b0c4de" rotation="-30 45 90"></a-torus>
+    <a-entity id="tech-core" position="0 1.35 -0.5" echte-hand-physik>
+      
+      <a-sphere id="core-sphere" radius="0.12" color="#00ffcc" material="emissive: #00ffcc; emissiveIntensity: 0.4;"></a-sphere>
+      
+      <a-torus radius="0.3" radius-tubular="0.02" color="#778899" rotation="30 45 0" material="roughness: 0.2; metalness: 0.9;"></a-torus>
+      <a-torus radius="0.3" radius-tubular="0.02" color="#b0c4de" rotation="-30 45 90" material="roughness: 0.2; metalness: 0.9;"></a-torus>
+      
       <a-cylinder radius="0.02" height="0.7" color="#ff3366" rotation="90 0 0"></a-cylinder>
+      <a-cylinder radius="0.02" height="0.7" color="#ff3366" rotation="0 90 0"></a-cylinder>
     </a-entity>
 
     <a-entity id="leftHand" hand-tracking-controls="hand: left; modelStyle: mesh;"></a-entity>
