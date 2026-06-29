@@ -2,12 +2,17 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>VR Industrie-Training: MULTIPLAYER NATIVE</title>
+  <title>VR Industrie-Training: MULTIPLAYER FORCE</title>
   
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://unpkg.com/networked-aframe@0.12.0/dist/networked-aframe.min.js"></script>
 
   <script>
+    // Ein kleiner Trick: Wir erzwingen das Löschen der alten NAF-Instanz beim Laden
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.easyrtc) delete window.easyrtc;
+    });
+
     AFRAME.registerComponent('native-joint-physik', {
       init: function () {
         this.objPos = new THREE.Vector3();
@@ -70,10 +75,10 @@
 <body>
 
   <a-scene networked-scene="
-    room: sachsen-training-pure-socket-100;
+    room: sachsen-industrie-v100;
     debug: true;
     adapter: socketio;
-    serverURL: https://naf.haydenlee.io/;
+    serverURL: https://networked-aframe.glitch.me/;
   " webxr="optionalFeatures: hand-tracking, local-floor;" renderer="colorManagement: true;">
     
     <a-assets>
