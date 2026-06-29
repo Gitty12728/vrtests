@@ -2,27 +2,71 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Büro für Technische Kommunikation - VR Hand Tracking</title>
+  <title>Büro für Technische Kommunikation - VR Hand Rotation (Fix)</title>
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-super-hands-component@master/dist/super-hands.min.js"></script>
+  
+  <script>
+    // Eigenes Skript: Fragt die Handposition direkt über die Render-Schleife (tick) ab
+    AFRAME.registerComponent('hand-rotator', {
+      init: function () {
+        var el = this.el;
+        this.isPinching = false;
+        this.lastX = 0;
+
+        // Referenz zur rechten Hand holen
+        this.rightHand = document.querySelector('#rightHand');
+        
+        var self = this;
+
+        // 1. Start der Drehung bei Pinch-Geste
+        this.rightHand.addEventListener('pinchstarted', function (evt) {
+          var handPos = evt.detail.position;
+          var objPos = el.object3D.position;
+          // Abstand zwischen Hand und Objekt berechnen
+          var distance = handPos.distanceTo(objPos);
+          
+          // Wenn die Hand nah genug am Objekt ist (ca. 50cm), aktivieren wir das Drehen
+          if (distance < 0.5) {
+            self.isPinching = true;
+            // Erste X-Position der Hand für den Startwert speichern
+            self.lastX = self.rightHand.object3D.position.x;
+          }
+        });
+
+        // 2. Ende der Drehung, wenn die Finger geöffnet werden
+        this.rightHand.addEventListener('pinchended', function () {
+          self.isPinching = false;
+        });
+      },
+
+      // 3. Die kontinuierliche Abfrage in jedem Frame (90Hz)
+      tick: function () {
+        if (!this.isPinching) return;
+        
+        // Direkter Zugriff auf die echte, aktuelle 3D-Position der Hand im Raum
+        var currentX = this.rightHand.object3D.position.x;
+        
+        // Berechnung des Unterschieds (Wie weit wurde die Hand seit dem letzten Frame bewegt?)
+        var deltaX = currentX - this.lastX;
+        
+        // Drehung auf das Objekt anwenden (Multiplikator 5 für flüssige Geschwindigkeit)
+        this.el.object3D.rotation.y += deltaX * 5;
+        
+        // Wert für den nächsten Frame merken
+        this.lastX = currentX;
+      }
+    });
+  </script>
 </head>
 <body>
 
   <a-scene webxr="optionalFeatures: hand-tracking" renderer="colorManagement: true;">
     
-    <a-assets>
-      <a-mixin id="interaktiv"
-               hoverable grabbable stretchable draggable
-               event-set__hoveron="_event: hover-start; material.wireframe: true"
-               event-set__hoveroff="_event: hover-end; material.wireframe: false">
-      </a-mixin>
-    </a-assets>
-
     <a-sky color="#020205"></a-sky>
     <a-grid width="30" height="30" color="#0a0a10" grid-color="#1a1a25"></a-grid>
 
-    <a-entity light="type: ambient; color: #222; intensity: 0.3"></a-entity>
-    <a-entity light="type: spot; color: #00ffff; intensity: 4; angle: 30; penumbra: 0.5" position="0 4 0" rotation="-90 0 0"></a-entity>
+    <a-entity light="type: ambient; color: #fff; intensity: 0.15"></a-entity>
+    <a-entity light="type: spot; color: #00ffff; intensity: 5; angle: 30; penumbra: 0.5" position="0 4 -0.5" rotation="-90 0 0"></a-entity>
 
     <a-cylinder id="vitrine" 
                 position="0 0.5 -0.5" 
@@ -33,12 +77,8 @@
       <a-ring color="#00ffcc" radius-inner="0.46" radius-outer="0.49" position="0 0.51 0" rotation="-90 0 0" material="shader: flat;"></a-ring>
     </a-cylinder>
 
-    <a-entity id="tech-core" 
-              position="0 1.35 -0.5" 
-              scale="0.7 0.7 0.7"
-              mixin="interaktiv">
-      
-      <a-sphere radius="0.12" color="#00ffcc" material="emissive: #00ffcc; emissiveIntensity: 0.5;"></a-sphere>
+    <a-entity id="tech-core" position="0 1.35 -0.5" hand-rotator>
+      <a-sphere radius="0.12" color="#00ffcc" material="emissive: #00ffcc; emissiveIntensity: 0.3;"></a-sphere>
       
       <a-torus radius="0.3" radius-tubular="0.02" color="#778899" rotation="30 45 0" material="roughness: 0.2; metalness: 0.9;"></a-torus>
       <a-torus radius="0.3" radius-tubular="0.02" color="#b0c4de" rotation="-30 45 90" material="roughness: 0.2; metalness: 0.9;"></a-torus>
@@ -52,21 +92,10 @@
       <a-box width="0.06" height="0.06" depth="0.06" position="0 -0.35 0" color="#ffffff" material="metalness: 1;"></a-box>
     </a-entity>
 
-    <a-entity id="leftHand"
-              hand-tracking-controls="hand: left; modelStyle: mesh;"
-              sphere-collider="objects: #tech-core;"
-              super-hands="ColliderEvent: hitstart; ColliderEndEvent: hitend;">
-    </a-entity>
+    <a-entity id="leftHand" hand-tracking-controls="hand: left; modelStyle: mesh;"></a-entity>
+    <a-entity id="rightHand" hand-tracking-controls="hand: right; modelStyle: mesh;"></a-entity>
 
-    <a-entity id="rightHand"
-              hand-tracking-controls="hand: right; modelStyle: mesh;"
-              sphere-collider="objects: #tech-core;"
-              super-hands="ColliderEvent: hitstart; ColliderEndEvent: hitend;">
-    </a-entity>
-
-    <a-entity camera position="0 1.6 0.8" look-controls>
-      <a-entity cursor="rayOrigin: mouse" raycaster="objects: #tech-core"></a-entity>
-    </a-entity>
+    <a-entity camera position="0 1.6 0.8" look-controls></a-entity>
 
   </a-scene>
 
