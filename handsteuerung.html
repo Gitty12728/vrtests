@@ -2,74 +2,70 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Büro für Technische Kommunikation - VR Training Demo</title>
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <title>Büro für Technische Kommunikation - VR Hand Tracking</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-super-hands-component@master/dist/super-hands.min.js"></script>
-  <script src="https://unpkg.com/aframe-event-set-component@5.0.0/dist/aframe-event-set-component.min.js"></script>
 </head>
 <body>
 
   <a-scene webxr="optionalFeatures: hand-tracking" renderer="colorManagement: true;">
     
     <a-assets>
-      <a-mixin id="grabable"
+      <a-mixin id="interaktiv"
                hoverable grabbable stretchable draggable
-               event-set__hoveron="_event: hover-start; material.opacity: 0.7"
-               event-set__hoveroff="_event: hover-end; material.opacity: 1">
+               event-set__hoveron="_event: hover-start; material.wireframe: true"
+               event-set__hoveroff="_event: hover-end; material.wireframe: false">
       </a-mixin>
     </a-assets>
 
-    <a-sky color="#050508"></a-sky>
-    <a-grid width="20" height="20" color="#111115" grid-color="#22222a"></a-grid>
+    <a-sky color="#020205"></a-sky>
+    <a-grid width="30" height="30" color="#0a0a10" grid-color="#1a1a25"></a-grid>
 
-    <a-entity light="type: ambient; color: #333; intensity: 0.5"></a-entity>
-    
-    <a-entity light="type: spot; color: #fff; intensity: 3; angle: 40; penumbra: 0.8" position="0 5 0" rotation="-90 0 0"></a-entity>
+    <a-entity light="type: ambient; color: #222; intensity: 0.3"></a-entity>
+    <a-entity light="type: spot; color: #00ffff; intensity: 4; angle: 30; penumbra: 0.5" position="0 4 0" rotation="-90 0 0"></a-entity>
 
     <a-cylinder id="vitrine" 
-                position="0 0.5 0" 
-                radius="0.6" 
+                position="0 0.5 -0.5" 
+                radius="0.5" 
                 height="1" 
-                color="#1c1c24" 
-                material="roughness: 0.2; metalness: 0.5;">
-      
-      <a-ring color="#00ffcc" radius-inner="0.55" radius-outer="0.58" position="0 0.51 0" rotation="-90 0 0" material="shader: flat;"></a-ring>
+                color="#111116" 
+                material="roughness: 0.4; metalness: 0.8;">
+      <a-ring color="#00ffcc" radius-inner="0.46" radius-outer="0.49" position="0 0.51 0" rotation="-90 0 0" material="shader: flat;"></a-ring>
     </a-cylinder>
 
-    <a-entity id="tech-object" 
-              position="0 1.4 0" 
-              scale="0.8 0.8 0.8"
-              mixin="grabable"
-              description="Greife dieses Objekt mit der Pinch-Geste, um es zu rotieren.">
+    <a-entity id="tech-core" 
+              position="0 1.35 -0.5" 
+              scale="0.7 0.7 0.7"
+              mixin="interaktiv">
       
-      <a-sphere radius="0.15" color="#0077ff" material="roughness: 0.1; metalness: 0.8;"></a-sphere>
+      <a-sphere radius="0.12" color="#00ffcc" material="emissive: #00ffcc; emissiveIntensity: 0.5;"></a-sphere>
       
-      <a-torus radius="0.35" radius-tubular="0.02" color="#cccccc" rotation="45 45 0"></a-torus>
-      <a-torus radius="0.35" radius-tubular="0.02" color="#999999" rotation="-45 45 0"></a-torus>
+      <a-torus radius="0.3" radius-tubular="0.02" color="#778899" rotation="30 45 0" material="roughness: 0.2; metalness: 0.9;"></a-torus>
+      <a-torus radius="0.3" radius-tubular="0.02" color="#b0c4de" rotation="-30 45 90" material="roughness: 0.2; metalness: 0.9;"></a-torus>
       
-      <a-cylinder radius="0.03" height="0.8" color="#ff3366" rotation="0 0 90"></a-cylinder>
-      <a-cylinder radius="0.03" height="0.8" color="#ff3366" rotation="0 90 0"></a-cylinder>
+      <a-cylinder radius="0.02" height="0.7" color="#ff3366" rotation="90 0 0"></a-cylinder>
+      <a-cylinder radius="0.02" height="0.7" color="#ff3366" rotation="0 90 0"></a-cylinder>
       
-      <a-box width="0.08" height="0.08" depth="0.08" position="0.4 0 0" color="#00ffcc"></a-box>
-      <a-box width="0.08" height="0.08" depth="0.08" position="-0.4 0 0" color="#00ffcc"></a-box>
-      <a-box width="0.08" height="0.08" depth="0.08" position="0 0.4 0" color="#00ffcc"></a-box>
-      <a-box width="0.08" height="0.08" depth="0.08" position="0 -0.4 0" color="#00ffcc"></a-box>
+      <a-box width="0.06" height="0.06" depth="0.06" position="0.35 0 0" color="#ffffff" material="metalness: 1;"></a-box>
+      <a-box width="0.06" height="0.06" depth="0.06" position="-0.35 0 0" color="#ffffff" material="metalness: 1;"></a-box>
+      <a-box width="0.06" height="0.06" depth="0.06" position="0 0.35 0" color="#ffffff" material="metalness: 1;"></a-box>
+      <a-box width="0.06" height="0.06" depth="0.06" position="0 -0.35 0" color="#ffffff" material="metalness: 1;"></a-box>
     </a-entity>
 
-    <a-entity id="left-hand"
+    <a-entity id="leftHand"
               hand-tracking-controls="hand: left; modelStyle: mesh;"
-              sphere-collider="objects: #tech-object;"
+              sphere-collider="objects: #tech-core;"
               super-hands="ColliderEvent: hitstart; ColliderEndEvent: hitend;">
     </a-entity>
 
-    <a-entity id="right-hand"
+    <a-entity id="rightHand"
               hand-tracking-controls="hand: right; modelStyle: mesh;"
-              sphere-collider="objects: #tech-object;"
+              sphere-collider="objects: #tech-core;"
               super-hands="ColliderEvent: hitstart; ColliderEndEvent: hitend;">
     </a-entity>
 
-    <a-entity camera position="0 1.6 1.5" look-controls>
-      <a-entity cursor="rayOrigin: mouse" raycaster="objects: #tech-object"></a-entity>
+    <a-entity camera position="0 1.6 0.8" look-controls>
+      <a-entity cursor="rayOrigin: mouse" raycaster="objects: #tech-core"></a-entity>
     </a-entity>
 
   </a-scene>
