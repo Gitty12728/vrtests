@@ -2,9 +2,10 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>VR Industrie-Training: MULTIPLAYER (CLEAN)</title>
+  <title>VR Industrie-Training: MULTIPLAYER FINAL</title>
   
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.slim.js"></script>
   <script src="https://unpkg.com/networked-aframe@0.12.0/dist/networked-aframe.min.js"></script>
 
   <script>
@@ -57,10 +58,6 @@
           var deltaX = currentX - this.lastX;
           this.el.object3D.rotation.z += deltaX * 8;
           this.lastX = currentX;
-
-          if (this.el.components.networked && !NAF.utils.isMine(this.el)) {
-            NAF.utils.takeOwnership(this.el);
-          }
         } else {
           if (this.isTouching) {
             this.isTouching = false;
@@ -74,7 +71,7 @@
 <body>
 
   <a-scene networked-scene="
-    room: sachsen-training-999;
+    room: industrie-final-room-777;
     debug: true;
     adapter: wseasyrtc;
     serverURL: https://naf.haydenlee.io/;
@@ -108,8 +105,8 @@
       <a-cylinder radius="0.05" height="0.06" color="#555" rotation="90 0 0"></a-cylinder>
     </a-entity>
 
-    <a-entity id="player" networked="template:#avatar-template;attachTemplateToLocal:false;">
-      <a-entity camera position="0 1.6 0.6" look-controls></a-entity>
+    <a-entity id="cameraRig">
+      <a-entity id="head" camera position="0 1.6 0.6" look-controls networked="template:#avatar-template;attachTemplateToLocal:false;"></a-entity>
       
       <a-entity id="leftHand" hand-tracking-controls="hand: left; modelStyle: mesh;" networked="template:#hand-template;"></a-entity>
       <a-entity id="rightHand" hand-tracking-controls="hand: right; modelStyle: mesh;" networked="template:#hand-template;"></a-entity>
