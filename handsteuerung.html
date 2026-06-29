@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>VR Industrie-Training: Ventil-Rotation</title>
+  <title>VR Industrie-Training: Ventil-Rotation (Gefixt)</title>
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   
   <script>
@@ -44,7 +44,7 @@
             if (indexTip && refSpace) {
               var pose = frame.getJointPose(indexTip, refSpace);
               if (pose) {
-                // Das sind die echten, unbestechlichen Hardware-Koordinaten deines Fingers!
+                // Das sind die echten Raum-Koordinaten deines Fingers
                 this.fingerPos.set(
                   pose.transform.position.x,
                   pose.transform.position.y,
@@ -58,7 +58,7 @@
                 if (distance < 0.4) {
                   foundCollision = true;
                   currentX = this.fingerPos.x;
-                  break; // Eine Hand reicht für die Interaktion
+                  break; 
                 }
               }
             }
@@ -70,21 +70,21 @@
           if (!this.isTouching) {
             this.isTouching = true;
             this.lastX = currentX;
-            // VISUELLES FEEDBACK: Ventil wird bei Berührung rot (Trainingseffekt!)
+            // VISUELLES FEEDBACK: Ventil wird bei Berührung rot
             if (this.valveWheel) this.valveWheel.setAttribute('color', '#ff3300');
           }
           
           // Berechne die Bewegung des Fingers auf der X-Achse
           var deltaX = currentX - this.lastX;
           
-          // Da das Rad flach vor uns steht, drehen wir es um die Z-Achse (wie ein Steuerrad)
+          // Drehung um die Z-Achse (wie ein Steuerrad)
           this.el.object3D.rotation.z += deltaX * 8;
           
           this.lastX = currentX;
         } else {
           if (this.isTouching) {
             this.isTouching = false;
-            // Zurücksetzen auf die industrielle Standardfarbe Gelb
+            // Zurücksetzen auf die Standardfarbe Gelb
             if (this.valveWheel) this.valveWheel.setAttribute('color', '#ffcc00');
           }
         }
@@ -99,7 +99,7 @@
     <a-sky color="#05050a"></a-sky>
     <a-grid width="30" height="30" color="#0f0f15" grid-color="#1c1c28"></a-grid>
 
-    <a-entity light="type: ambient; color: #fff; intensity: 0.1"></a-entity>
+    <a-entity light="type: ambient; color: #fff; intensity: 0.15"></a-entity>
     <a-entity light="type: spot; color: #ffffff; intensity: 6; angle: 40; penumbra: 0.6" position="0 4 -0.6" rotation="-90 0 0"></a-entity>
 
     <a-cylinder position="0 0.5 -0.6" radius="0.4" height="1" color="#181822" material="roughness: 0.4; metalness: 0.6;"></a-cylinder>
@@ -109,7 +109,7 @@
       <a-torus id="valve-wheel" radius="0.32" radius-tubular="0.03" color="#ffcc00" material="roughness: 0.4; metalness: 0.2;"></a-torus>
       
       <a-cylinder radius="0.018" height="0.64" color="#cca300" rotation="0 0 0" material="roughness: 0.4;"></a-cylinder>
-      <a-cylinder radius="0.018" height="0.64" color="#cca300" rotation="0 0 90" material="roughness: 0.4;"></a-canvas>
+      <a-cylinder radius="0.018" height="0.64" color="#cca300" rotation="0 0 90" material="roughness: 0.4;"></a-cylinder>
       
       <a-cylinder radius="0.05" height="0.06" color="#555" rotation="90 0 0" material="metalness: 0.8; roughness: 0.2;"></a-cylinder>
       
