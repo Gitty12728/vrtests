@@ -2,14 +2,9 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>VR Industrie-Training: MULTIPLAYER WORKS</title>
+  <title>VR Industrie-Training: MULTIPLAYER NATIVE</title>
   
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.5.0/socket.io.slim.js"></script>
-  
-  <script src="https://naf.haydenlee.io/easyrtc/easyrtc.js"></script>
-  
   <script src="https://unpkg.com/networked-aframe@0.12.0/dist/networked-aframe.min.js"></script>
 
   <script>
@@ -75,9 +70,9 @@
 <body>
 
   <a-scene networked-scene="
-    room: sachsen-training-final-ok;
+    room: sachsen-training-pure-socket-100;
     debug: true;
-    adapter: wseasyrtc;
+    adapter: socketio;
     serverURL: https://naf.haydenlee.io/;
   " webxr="optionalFeatures: hand-tracking, local-floor;" renderer="colorManagement: true;">
     
