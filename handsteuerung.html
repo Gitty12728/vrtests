@@ -2,60 +2,63 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Büro für Technische Kommunikation - VR Hand Tracking Fix</title>
+  <title>VR Hand-Touch Rotation (Ohne Pinch)</title>
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   
   <script>
-    AFRAME.registerComponent('hand-rotator', {
+    AFRAME.registerComponent('hand-touch-rotator', {
       init: function () {
-        var el = this.el;
-        this.isPinching = false;
-        this.lastX = 0;
-        
-        // Wir holen uns die Hand-Entitäten
+        this.el = this.el;
         this.rightHand = document.querySelector('#rightHand');
-        var self = this;
-
-        // Nutzen der nativen WebXR-Events, die das Quest-Systemmenü umgehen
-        this.rightHand.addEventListener('webxrhandconnected', function() {
-          console.log("Hand erfolgreich im WebXR-Modus registriert!");
-        });
-
-        // A-Frame mäßiges Abfangen der Geste direkt über das Controller/Hand-Interface
-        this.rightHand.addEventListener('gripdown', function() { self.startRotate(); });
-        this.rightHand.addEventListener('triggerdown', function() { self.startRotate(); });
-        this.rightHand.addEventListener('gripup', function() { self.isPinching = false; });
-        this.rightHand.addEventListener('triggerup', function() { self.isPinching = false; });
+        this.leftHand = document.querySelector('#leftHand');
         
-        // Fallback für die Standard-Pinch-Events
-        this.rightHand.addEventListener('pinchstarted', function(evt) {
-          self.startRotate(evt.detail.position);
-        });
-        this.rightHand.addEventListener('pinchended', function() {
-          self.isPinching = false;
-        });
+        this.isTouching = false;
+        this.lastX = 0;
+        this.activeHand = null;
       },
 
-      startRotate: function(handPos) {
-        var el = this.el;
-        var currentHandPos = handPos || this.rightHand.object3D.position;
-        var objPos = el.object3D.position;
-        var distance = currentHandPos.distanceTo(objPos);
+      // Die Tick-Funktion läuft mit 90Hz und misst einfach nur den physikalischen Abstand
+      tick: function () {
+        var objPos = this.el.object3D.position;
         
-        // Erhöhter Radius auf 60cm, um das Greifen zu erleichtern
-        if (distance < 0.6) {
-          this.isPinching = true;
-          this.lastX = this.rightHand.object3D.position.x;
+        // 1. Prüfen, ob die rechte Hand nah genug am Objekt ist
+        var rightHandPos = this.rightHand.object3D.position;
+        var distRight = rightHandPos.distanceTo(objPos);
+        
+        // 2. Prüfen, ob die linke Hand nah genug am Objekt ist
+        var leftHandPos = this.leftHand.object3D.position;
+        var distLeft = leftHandPos.distanceTo(objPos);
+        
+        // Wir definieren einen Berührungs-Radius von 35 cm um das Objektzentrum
+        var touchRadius = 0.35;
+        
+        if (distRight < touchRadius) {
+          this.handleTouch(rightHandPos.x);
+        } else if (distLeft < touchRadius) {
+          this.handleTouch(leftHandPos.x);
+        } else {
+          // Keine Hand berührt das Objekt
+          this.isTouching = false;
+          this.activeHand = null;
+          // Visuelles Feedback: Normaler Zustand
+          this.el.setAttribute('material', 'wireframe', false);
         }
       },
-
-      tick: function () {
-        if (!this.isPinching) return;
-        var currentX = this.rightHand.object3D.position.x;
+      
+      handleTouch: function(currentX) {
+        if (!this.isTouching) {
+          this.isTouching = true;
+          this.lastX = currentX;
+          // Visuelles Feedback: Objekt wird zum Gittermodell, wenn man es berührt
+          this.el.setAttribute('material', 'wireframe', true);
+        };
+        
+        // Berechne die Handbewegung seit dem letzten Frame
         var deltaX = currentX - this.lastX;
         
-        // Rotation anwenden
-        this.el.object3D.rotation.y += deltaX * 6;
+        // Drehe das Objekt (Multiplikator 8 für direkte Reaktion)
+        this.el.object3D.rotation.y += deltaX * 8;
+        
         this.lastX = currentX;
       }
     });
@@ -63,7 +66,7 @@
 </head>
 <body>
 
-  <a-scene webxr="requiredFeatures: hand-tracking; optionalFeatures: local-floor;" xr-mode-ui="XRMode: vr" renderer="colorManagement: true;">
+  <a-scene webxr="optionalFeatures: hand-tracking, local-floor;" renderer="colorManagement: true;">
     
     <a-sky color="#020205"></a-sky>
     <a-grid width="30" height="30" color="#0a0a10" grid-color="#1a1a25"></a-grid>
@@ -72,7 +75,7 @@
 
     <a-cylinder position="0 0.5 -0.5" radius="0.5" height="1" color="#111116"></a-cylinder>
 
-    <a-entity id="tech-core" position="0 1.35 -0.5" hand-rotator>
+    <a-entity id="tech-core" position="0 1.35 -0.5" hand-touch-rotator>
       <a-sphere radius="0.12" color="#00ffcc" material="emissive: #00ffcc; emissiveIntensity: 0.3;"></a-sphere>
       <a-torus radius="0.3" radius-tubular="0.02" color="#778899" rotation="30 45 0"></a-torus>
       <a-torus radius="0.3" radius-tubular="0.02" color="#b0c4de" rotation="-30 45 90"></a-torus>
