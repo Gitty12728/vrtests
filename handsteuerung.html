@@ -2,11 +2,9 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>VR Industrie-Training: MULTIPLAYER (FIXED)</title>
+  <title>VR Industrie-Training: MULTIPLAYER (CLEAN)</title>
   
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.slim.js"></script>
   <script src="https://unpkg.com/networked-aframe@0.12.0/dist/networked-aframe.min.js"></script>
 
   <script>
@@ -60,7 +58,6 @@
           this.el.object3D.rotation.z += deltaX * 8;
           this.lastX = currentX;
 
-          // Besitzrechte kurzzeitig übernehmen, um im Netzwerk zu senden
           if (this.el.components.networked && !NAF.utils.isMine(this.el)) {
             NAF.utils.takeOwnership(this.el);
           }
@@ -77,9 +74,9 @@
 <body>
 
   <a-scene networked-scene="
-    room: privat-training-room-xyz999;
+    room: sachsen-training-999;
     debug: true;
-    adapter: socketio;
+    adapter: wseasyrtc;
     serverURL: https://naf.haydenlee.io/;
   " webxr="optionalFeatures: hand-tracking, local-floor;" renderer="colorManagement: true;">
     
